@@ -1,0 +1,20 @@
+# dsh-visual-kit bundle patch
+#
+# Inserts this plugin's row into the profile roster.
+#
+# The host half (exports ".") serves the vendored renderer engines under
+# /dsh-visual-kit/assets/<renderer>/<file>, the effective configuration, the
+# renderer manifest, an integrity report, and the diagnostic beacon. The
+# `dsh.client` declaration in package.json makes the browser half
+# (exports "./client") load in the web GUI, where it turns fenced blocks into
+# diagrams and charts.
+#
+# Install (from a local checkout):
+#   dsh plugin --profile <name> add link:<path-to-this-package>
+#
+# Configuration lives in the plugin's own row and is editable in the DSH plugin
+# settings; the schema is generated from lib/renderers/manifest.js, so a newly
+# added renderer appears there as a new toggle without any edit here.
+- insert:
+    - id: visual-kit
+      name: 'dsh-visual-kit'

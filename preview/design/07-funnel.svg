@@ -1,0 +1,20 @@
+<svg viewBox="0 0 680 500" width="100%" role="img" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif">
+<title>注册转化漏斗</title>
+<desc>从访问落地页到首次付费的五级漏斗，各级标注转化率，蓝色逐级加深。</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<text x="42" y="34" font-size="14" font-weight="500" fill="#444441">注册转化漏斗</text>
+<rect x="60" y="60" width="560" height="56" rx="8" fill="#B5D4F4" stroke="#185FA5" stroke-width="0.5"/>
+<text x="340" y="88" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" dominant-baseline="central">访问落地页 · 10,000</text>
+<text x="340" y="132" font-size="11" fill="#5F5E5A" text-anchor="middle">↓ 100%</text>
+<rect x="211.2" y="148" width="257.6" height="56" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="340" y="176" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" dominant-baseline="central">点击注册 · 4,600</text>
+<text x="340" y="220" font-size="11" fill="#5F5E5A" text-anchor="middle">↓ 46%</text>
+<rect x="258.8" y="236" width="162.39999999999998" height="56" rx="8" fill="#CFE0F6" stroke="#185FA5" stroke-width="0.5"/>
+<text x="340" y="264" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" dominant-baseline="central">填写资料 · 2,900</text>
+<text x="340" y="308" font-size="11" fill="#5F5E5A" text-anchor="middle">↓ 63%</text>
+<rect x="280" y="324" width="120" height="56" rx="8" fill="#BBD3F0" stroke="#185FA5" stroke-width="0.5"/>
+<text x="340" y="352" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" dominant-baseline="central">完成验证 · 1,800</text>
+<text x="340" y="396" font-size="11" fill="#5F5E5A" text-anchor="middle">↓ 62%</text>
+<rect x="280" y="412" width="120" height="56" rx="8" fill="#A9C8EA" stroke="#185FA5" stroke-width="0.5"/>
+<text x="340" y="440" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" dominant-baseline="central">首次付费 · 640</text>
+</svg>

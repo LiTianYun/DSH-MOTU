@@ -1,0 +1,85 @@
+{
+  "name": "dsh-visual-kit",
+  "version": "0.2.0",
+  "description": "可视化套件 — render fenced blocks in the DSH web conversation as real diagrams and charts. Six pluggable renderers (Mermaid, Graphviz, nomnoml, ECharts, Vega-Lite, and hand-written SVG), every one configurable, integrity-checked and served by the plugin itself — no CDN, works offline.",
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "diagram",
+    "chart",
+    "visualization",
+    "svg",
+    "mermaid",
+    "graphviz",
+    "nomnoml",
+    "echarts",
+    "vega-lite",
+    "offline"
+  ],
+  "license": "MIT",
+  "icon": "./icon.svg",
+  "author": "molanxuan-del <2954567135@qq.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/molanxuan-del/dsh-visual-kit.git"
+  },
+  "homepage": "https://github.com/molanxuan-del/dsh-visual-kit#readme",
+  "bugs": {
+    "url": "https://github.com/molanxuan-del/dsh-visual-kit/issues"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "vendor",
+    "skill",
+    "scripts",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepare": "node scripts/vendor.mjs",
+    "vendor": "node scripts/vendor.mjs",
+    "test": "node --test",
+    "check:renderers": "node scripts/check-renderers.mjs"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.4"
+  },
+  "devDependencies": {
+    "@viz-js/viz": "^3.31.0",
+    "dompurify": "^3.4.17",
+    "echarts": "^6.1.0",
+    "jsdom": "^29.1.1",
+    "mermaid": "^11.17.2",
+    "nomnoml": "^1.7.0",
+    "vega": "^6.0.0",
+    "vega-lite": "^6.0.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.2.0-rc.2": "compatible"
+      }
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

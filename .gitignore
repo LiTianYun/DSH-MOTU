@@ -1,0 +1,23 @@
+# Dependencies (228 MB, 14928 files — never commit)
+node_modules/
+
+# Vendored engine builds are generated from devDependencies by `npm run vendor`,
+# which `npm install` runs automatically through the `prepare` script.
+# Keep this line if you prefer a small repository; delete it if you would rather
+# ship the engines so a clone works without a build step (adds ~6.6 MB).
+vendor/
+
+# Local reference material captured from another product's UI. These are not
+# this project's work and should not be redistributed.
+图表参考/
+
+# Scratch and local output
+.scratch/
+*.tgz
+*.log
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

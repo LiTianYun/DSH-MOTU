@@ -1,0 +1,24 @@
+<svg viewBox="0 0 680 440" width="100%" role="img" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif">
+<title>需求优先级四象限</title>
+<desc>按影响与紧迫分为马上做、规划做、授权做、少做四个象限，绿为最高优先。</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<text x="42" y="30" font-size="14" font-weight="500" fill="#444441">需求优先级 · 影响 × 紧迫</text>
+<path d="M340 60 V400" fill="none" stroke="#B4B2A9" stroke-width="1"/>
+<path d="M80 230 H620" fill="none" stroke="#B4B2A9" stroke-width="1"/>
+<text x="340" y="48" font-size="11" fill="#5F5E5A" text-anchor="middle">影响 ↑ 高</text>
+<text x="340" y="420" font-size="11" fill="#5F5E5A" text-anchor="middle">影响 ↓ 低</text>
+<text x="70" y="234" font-size="11" fill="#5F5E5A" text-anchor="middle">紧迫 ← 低</text>
+<text x="630" y="234" font-size="11" fill="#5F5E5A" text-anchor="middle">紧迫 高 →</text>
+<rect x="96" y="72" width="224" height="140" rx="12" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="208" y="128" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle" dominant-baseline="central">规划做</text>
+<text x="208" y="158" font-size="11" fill="#185FA5" text-anchor="middle" dominant-baseline="central">重要不紧急 · 定节奏</text>
+<rect x="360" y="72" width="224" height="140" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="472" y="128" font-size="14" font-weight="500" fill="#085041" text-anchor="middle" dominant-baseline="central">马上做</text>
+<text x="472" y="158" font-size="11" fill="#0F6E56" text-anchor="middle" dominant-baseline="central">重要且紧急 · 先救火</text>
+<rect x="96" y="250" width="224" height="140" rx="12" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
+<text x="208" y="306" font-size="14" font-weight="500" fill="#5F5E5A" text-anchor="middle" dominant-baseline="central">少做</text>
+<text x="208" y="336" font-size="11" fill="#B4B2A9" text-anchor="middle" dominant-baseline="central">不重要不紧急 · 默认拒绝</text>
+<rect x="360" y="250" width="224" height="140" rx="12" fill="#FAEEDA" stroke="#BA7517" stroke-width="0.5"/>
+<text x="472" y="306" font-size="14" font-weight="500" fill="#633806" text-anchor="middle" dominant-baseline="central">授权做</text>
+<text x="472" y="336" font-size="11" fill="#BA7517" text-anchor="middle" dominant-baseline="central">紧急不重要 · 交出去</text>
+</svg>

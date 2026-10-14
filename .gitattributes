@@ -1,0 +1,11 @@
+# 统一换行符，避免 Windows 检出把整个仓库标成改动
+* text=auto eol=lf
+
+# 生成的引擎产物：不入库，但若本地存在，GitHub 应视为二进制
+vendor/** binary
+
+# SVG 示例图在 diff 里可读（单行长文本，避免误判为二进制）
+*.svg text eol=lf
+
+# 锁文件在 diff 里噪音大
+package-lock.json -diff linguist-generated
