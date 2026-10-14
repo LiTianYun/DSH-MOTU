@@ -7,5 +7,5 @@ vendor/** binary
 # SVG 示例图在 diff 里可读（单行长文本，避免误判为二进制）
 *.svg text eol=lf
 
-# 锁文件在 diff 里噪音大
-package-lock.json -diff linguist-generated
+# 锁文件在 GitHub 上折叠显示，但差异仍可查看
+package-lock.json linguist-generated=true
