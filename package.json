@@ -23,11 +23,11 @@
   "author": "molanxuan-del <2954567135@qq.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/molanxuan-del/dsh-visual-kit.git"
+    "url": "git+https://github.com/molanxuan-del/DSH-MOTU.git"
   },
-  "homepage": "https://github.com/molanxuan-del/dsh-visual-kit#readme",
+  "homepage": "https://github.com/molanxuan-del/DSH-MOTU#readme",
   "bugs": {
-    "url": "https://github.com/molanxuan-del/dsh-visual-kit/issues"
+    "url": "https://github.com/molanxuan-del/DSH-MOTU/issues"
   },
   "type": "module",
   "main": "lib/index.js",

@@ -2,11 +2,13 @@
 
 **把对话里的代码块变成真正的图。**
 
-`dsh-visual-kit` 是 DeepSeek Harness 的可视化套件：模型在回复里写一段带语言的代码块，浏览器端就把它渲染成图。六种渲染方式全部**随插件本地伺服——不联网、不走 CDN**，每次出图结果一致；每个引擎按需懒加载，只画流程图的会话不会下载图表库。
+**墨图（MoTu）** 是 DeepSeek Harness 的可视化套件：模型在回复里写一段带语言的代码块，浏览器端就把它渲染成图。六种渲染方式全部**随插件本地伺服——不联网、不走 CDN**，每次出图结果一致；每个引擎按需懒加载，只画流程图的会话不会下载图表库。
+
+> 三个名字，一处对应：仓库 **`DSH-MOTU`** · 品牌 **墨图 / MoTu** · npm 包名 **`dsh-visual-kit`**（也是插件 id 与路由前缀 `/dsh-visual-kit/*`）。
 
 > 设计取向一句话：**一张清楚的图胜过三段文字**。所以插件不只是"能渲染图"，它还会要求模型在讲解结构、流程、对比、方案时**主动配图**，并给出成图规范。
 
-[![CI](https://github.com/molanxuan-del/dsh-visual-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/molanxuan-del/dsh-visual-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/molanxuan-del/DSH-MOTU/actions/workflows/ci.yml/badge.svg)](https://github.com/molanxuan-del/DSH-MOTU/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)
 
@@ -40,8 +42,8 @@
 ## 安装
 
 ```bash
-git clone https://github.com/molanxuan-del/dsh-visual-kit.git
-cd dsh-visual-kit
+git clone https://github.com/molanxuan-del/DSH-MOTU.git
+cd DSH-MOTU
 npm install                                  # 安装依赖并自动执行 prepare → 生成本地引擎产物
 dsh plugin --profile <name> add link:$PWD
 ```

@@ -36,5 +36,5 @@
 - 由渲染器清单派生的配置 Schema、常驻提示段与 `dsh-visualization` 技能。
 - 宿主半路由：`/config`、`/renderers.json`、`/assets/*`、`/health`、`/diag`。
 
-[0.2.0]: https://github.com/molanxuan-del/dsh-visual-kit/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/molanxuan-del/dsh-visual-kit/releases/tag/v0.1.0
+[0.2.0]: https://github.com/molanxuan-del/DSH-MOTU/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/molanxuan-del/DSH-MOTU/releases/tag/v0.1.0
