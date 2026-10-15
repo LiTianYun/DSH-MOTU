@@ -257,7 +257,7 @@ describe('配置写入（设置页开关的数据通道）', () => {
     try {
       const value = JSON.parse((await call(harness.routes, 'GET', '/dsh-visual-kit/config')).body).value
       assert.equal(value.settings.svgPreference, 80)
-      assert.match(value.prompt, /手写 SVG 80/)
+      assert.match(value.prompt, /手写 SVG 优先/)
     } finally { harness.dispose() }
   })
 

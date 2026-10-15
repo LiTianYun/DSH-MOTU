@@ -267,9 +267,9 @@ it('设置加载失败显示可操作的重试按钮', async (t) => {
   assert.ok(walk(tree).some(e => e.type === 'button' && e.children.includes('重新读取')))
 })
 
-it('绘图偏好先编辑后保存，失败保留草稿并允许重试', async t => {
+it('绘图方式点选即保存，兼容旧数值，失败保留原选项并允许重试', async t => {
   const { api, block, client, react, cat, window } = load(t)
-  let saved = 50, rejectWrite = false
+  let saved = 77, rejectWrite = false
   const writes = []
   window.fetch = async (url, options) => {
     if (options?.method === 'POST' && url.endsWith('/config')) {
@@ -286,21 +286,33 @@ it('绘图偏好先编辑后保存，失败保留草稿并允许重试', async t
   const panel = () => { react.reset(); return walk(client.internals.CapabilityPanel()) }
   panel(); react.effects[0](); await tick(); await tick()
   let tree = panel()
-  const range = () => tree.find(node => node.type === 'input' && node.props.type === 'range')
-  assert.equal(range().props.value, 50)
-  range().props.onChange({ currentTarget: { value: '80' } }); tree = panel()
-  assert.equal(writes.length, 0, '拖动不应连续写入宿主配置')
-  await tree.find(node => node.type === 'form').props.onSubmit({ preventDefault() {} })
+  const radio = mode => tree.find(node => node.type === 'input' && node.props.type === 'radio' && node.props.value === mode)
+  assert.equal(radio('svg').props.checked, true, '旧数值归入相应的命名模式')
+  assert.equal(tree.filter(node => node.type === 'input' && node.props.type === 'radio').length, 3)
+  assert.equal(tree.some(node => node.type === 'input' && node.props.type === 'range'), false)
+  const selectAuto = radio('auto').props.onChange
+  const pending = selectAuto()
   tree = panel()
-  assert.deepEqual(writes[0], { agent: { svgPreference: 80 } })
-  assert.equal(range().props.value, 80)
-  assert.equal(node.nextElementSibling, figure, '仅保存生成偏好不应重建已有图表')
-  assert.equal(tree.find(node => node.type === 'button' && node.props.type === 'submit').props.disabled, true)
-  rejectWrite = true
-  range().props.onChange({ currentTarget: { value: '20' } }); tree = panel()
-  await tree.find(node => node.type === 'form').props.onSubmit({ preventDefault() {} }); tree = panel()
+  assert.ok(['auto', 'standard', 'svg'].every(mode => radio(mode).props.disabled))
+  await selectAuto()
+  assert.equal(writes.length, 1, '保存期间重复操作不应再次写入')
+  await pending
+  tree = panel()
+  assert.deepEqual(writes[0], { agent: { svgPreference: 50 } })
+  assert.equal(radio('auto').props.checked, true)
+  await radio('svg').props.onChange(); tree = panel()
   assert.equal(saved, 80)
-  assert.equal(range().props.value, 20)
-  assert.equal(tree.find(node => node.type === 'button' && node.props.type === 'submit').props.disabled, false)
+  assert.equal(radio('svg').props.checked, true)
+  assert.equal(node.nextElementSibling, figure, '仅保存生成偏好不应重建已有图表')
+  rejectWrite = true
+  await radio('standard').props.onChange(); tree = panel()
+  assert.equal(saved, 80)
+  assert.equal(radio('svg').props.checked, true, '写入失败不能显示成已保存的新选项')
+  assert.equal(radio('standard').props.disabled, false)
   assert.ok(tree.some(node => node.props?.role === 'alert'))
+  rejectWrite = false
+  await radio('standard').props.onChange(); tree = panel()
+  assert.equal(saved, 20)
+  assert.equal(radio('standard').props.checked, true)
+  assert.equal(tree.some(node => node.props?.role === 'alert'), false)
 })
