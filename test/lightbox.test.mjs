@@ -101,20 +101,79 @@ it('Esc 关闭，并把滚动与焦点还给原来的位置', (t) => {
   assert.equal(env.document.activeElement, trigger, '焦点应回到触发按钮')
 })
 
-it('关闭按钮与点击背景都能关闭，点面板内部不会误关', (t) => {
+it('像看图一样：点图形区域关闭，点控件不关闭', async (t) => {
   const env = harness(t)
   open(env.window)
-  let root = env.document.querySelector('.vk-lightbox')
-  root.querySelector('.vk-lightbox-panel').click()
-  assert.equal(env.document.querySelectorAll('.vk-lightbox').length, 1, '点面板内部不应关闭')
-  root.querySelector('.vk-lightbox-scrim').click()
-  assert.equal(env.document.querySelectorAll('.vk-lightbox').length, 0, '点背景应关闭')
+  const root = env.document.querySelector('.vk-lightbox')
+  const stage = root.querySelector('.vk-lightbox-stage')
+  root.querySelector('.vk-lightbox-tools button').click()
+  await new Promise((resolve) => setTimeout(resolve, 260))
+  assert.equal(env.document.querySelectorAll('.vk-lightbox').length, 1, '点控件不应关闭')
+  stage.dispatchEvent(new env.window.Event('pointerdown', { bubbles: true }))
+  stage.dispatchEvent(new env.window.Event('pointerup', { bubbles: true }))
+  await new Promise((resolve) => setTimeout(resolve, 260))
+  assert.equal(env.document.querySelectorAll('.vk-lightbox').length, 0, '点图形区域应关闭')
+})
 
+it('关闭按钮立即关闭', (t) => {
+  const env = harness(t)
   open(env.window)
-  root = env.document.querySelector('.vk-lightbox')
+  const root = env.document.querySelector('.vk-lightbox')
   const close = [...root.querySelectorAll('button')].find((node) => node.textContent === '关闭')
   close.click()
   assert.equal(env.document.querySelectorAll('.vk-lightbox').length, 0)
+})
+
+it('双击在适应窗口与原始尺寸之间切换，且不被单击抢先关掉', async (t) => {
+  const env = harness(t)
+  open(env.window)
+  const root = env.document.querySelector('.vk-lightbox')
+  const stage = root.querySelector('.vk-lightbox-stage')
+  const svg = root.querySelector('.vk-lightbox-stage svg')
+  const scaleOf = () => Number((svg.style.transform.match(/scale\(([\d.]+)\)/) ?? [0, '1'])[1])
+  const dbl = () => stage.dispatchEvent(new env.window.MouseEvent('dblclick', { bubbles: true, cancelable: true, clientX: 400, clientY: 300 }))
+  stage.dispatchEvent(new env.window.Event('pointerdown', { bubbles: true }))
+  stage.dispatchEvent(new env.window.Event('pointerup', { bubbles: true }))
+  dbl()
+  assert.ok(Math.abs(scaleOf() - 1) < 1e-6, `双击应回到原始尺寸，实际 ${scaleOf()}`)
+  await new Promise((resolve) => setTimeout(resolve, 260))
+  assert.equal(env.document.querySelectorAll('.vk-lightbox').length, 1, '双击不应被单击关闭')
+  dbl()
+  assert.ok(scaleOf() !== 1, '再次双击应回到适应窗口')
+})
+
+it('滚轮是连续缩放，一格不会跳四分之一', (t) => {
+  const env = harness(t)
+  open(env.window)
+  const root = env.document.querySelector('.vk-lightbox')
+  const stage = root.querySelector('.vk-lightbox-stage')
+  const svg = root.querySelector('.vk-lightbox-stage svg')
+  const scaleOf = () => Number((svg.style.transform.match(/scale\(([\d.]+)\)/) ?? [0, '1'])[1])
+  const before = scaleOf()
+  stage.dispatchEvent(new env.window.WheelEvent('wheel', { deltaY: -120, clientX: 300, clientY: 200, bubbles: true, cancelable: true }))
+  const ratio = scaleOf() / before
+  assert.ok(ratio > 1 && ratio < 1.2, `一格滚轮应是小步放大，实际 ×${ratio.toFixed(3)}`)
+})
+
+it('双指捏合缩放', (t) => {
+  const env = harness(t)
+  open(env.window)
+  const root = env.document.querySelector('.vk-lightbox')
+  const stage = root.querySelector('.vk-lightbox-stage')
+  const svg = root.querySelector('.vk-lightbox-stage svg')
+  const scaleOf = () => Number((svg.style.transform.match(/scale\(([\d.]+)\)/) ?? [0, '1'])[1])
+  const before = scaleOf()
+  const point = (type, id, x, y) => {
+    const event = new env.window.Event(type, { bubbles: true })
+    Object.assign(event, { pointerId: id, clientX: x, clientY: y, button: 0 })
+    stage.dispatchEvent(event)
+  }
+  point('pointerdown', 1, 300, 300)
+  point('pointerdown', 2, 400, 300)
+  point('pointermove', 2, 500, 300)
+  assert.ok(scaleOf() > before, `两指拉远应放大：${before} → ${scaleOf()}`)
+  point('pointerup', 1, 300, 300)
+  point('pointerup', 2, 500, 300)
 })
 
 it('缩放按钮与键盘都作用在图形上，状态同步更新', (t) => {

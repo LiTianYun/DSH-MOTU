@@ -2,6 +2,16 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.1] — 2026-10-15
+
+- **修复放大展示的面板透明**：遮罩层挂在 `body` 上，而主题令牌 `--vk-*` 只定义在
+  `.vk-figure` / `.vk-error` / `.vk-panel` 内部，变量级联不到它 —— `var(--vk-surface)`
+  没有回退值，声明失效，于是面板背景透明、页面内容直接透出来。现在令牌选择器包含
+  `.vk-lightbox`。
+- **改为"看图"式交互**：全屏深色底 + 图形纸面卡片（不再是有边框的面板）；
+  **点图形区域任意处关闭**（拖动过就不算点击）、**双击**在适应窗口与原始尺寸之间切换、
+  **滚轮连续缩放**（一格约 15%，原来是每格 25%）、触屏**双指捏合**缩放。
+
 ## [0.4.0] — 2026-10-15
 
 - 新增「**放大展示**」：图框工具栏可把图铺满窗口，滚轮按指针位置缩放、拖拽平移，
@@ -54,6 +64,7 @@
 - 由渲染器清单派生的配置 Schema、常驻提示段与 `dsh-visualization` 技能。
 - 宿主半路由：`/config`、`/renderers.json`、`/assets/*`、`/health`、`/diag`。
 
+[0.4.1]: https://github.com/molanxuan-del/DSH-MOTU/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/molanxuan-del/DSH-MOTU/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/molanxuan-del/DSH-MOTU/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/molanxuan-del/DSH-MOTU/releases/tag/v0.2.0
