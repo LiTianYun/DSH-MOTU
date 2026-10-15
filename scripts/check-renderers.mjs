@@ -92,7 +92,11 @@ for (const spec of renderers) {
     clearContainer: () => {},
     theme: 'light',
     presentation: {
-      fontFamily: 'Microsoft YaHei, sans-serif',
+      // 字体栈必须**带引号**：ECharts 会把字体栈直接写进 XML 属性，带引号才走转义
+      // 那条路。这里曾用不带引号的 'Microsoft YaHei, sans-serif'，恰好绕过了
+      // "属性未转义 → XML 非法 → 导出文件/GitHub 裂图"这个缺陷，所以要与应用里
+      // 的真实回退栈（-apple-system, BlinkMacSystemFont, "Segoe UI", …）保持一致。
+      fontFamily: 'system-ui, "Segoe UI", "Microsoft YaHei", sans-serif',
       fontSize: 13,
       canvasMaxHeight: 360,
       canvasPadding: 16,
@@ -117,6 +121,15 @@ for (const spec of renderers) {
     const version = spec.assets.map((asset) => asset.pkg).join('+')
     if (!hasSvg || markup.length < 200) {
       throw new Error(`产物不像一张图（${markup.length} 字符，含 <svg>: ${hasSvg}）`)
+    }
+    // 产物必须是**严格合法的 XML**。HTML 解析很宽容，所以属性没转义这类问题在应用里
+    // 看不出来，但同样的字节一旦被严格解析就完蛋：导出的 SVG 文件用浏览器打开、
+    // 或在 GitHub 的 <img> 里渲染，都会直接裂图（ECharts 的字体栈就踩过这个坑）。
+    const parsed = new window.DOMParser().parseFromString(markup, 'image/svg+xml')
+    const parserError = parsed.querySelector('parsererror')
+    if (parserError !== null || parsed.documentElement?.nodeName?.toLowerCase() === 'parsererror') {
+      const message = String(parserError?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 160)
+      throw new Error(`产物不是合法 XML（严格解析会裂图）：${message}`)
     }
     rows.push({ id: spec.id, ok: true, bytes: markup.length, elapsed, version })
     console.log(`ok   ${label} ${String(markup.length).padStart(7)} 字符  ${String(elapsed).padStart(5)} ms  ${version}`)

@@ -266,3 +266,41 @@ it('设置加载失败显示可操作的重试按钮', async (t) => {
   assert.ok(walk(tree).some(e => e.props?.role === 'alert'))
   assert.ok(walk(tree).some(e => e.type === 'button' && e.children.includes('重新读取')))
 })
+
+it('绘图偏好先编辑后保存，失败保留草稿并允许重试', async t => {
+  const { api, block, client, react, cat, window } = load(t)
+  let saved = 50, rejectWrite = false
+  const writes = []
+  window.fetch = async (url, options) => {
+    if (options?.method === 'POST' && url.endsWith('/config')) {
+      const patch = JSON.parse(options.body); writes.push(patch)
+      if (!rejectWrite) saved = patch.agent.svgPreference
+      return { ok: !rejectWrite, status: rejectWrite ? 503 : 200, json: async () => ({ ok: !rejectWrite, error: { message: '写入失败' } }) }
+    }
+    return { ok: true, json: async () => url.endsWith('/config') ? { value: { settings: { autoRender: true, svgPreference: saved } } } : cat }
+  }
+  const node = block()
+  api.start(); await tick(); await api.scan(); await api.drain()
+  const figure = node.nextElementSibling
+  assert.equal(figure.classList.contains('vk-figure'), true)
+  const panel = () => { react.reset(); return walk(client.internals.CapabilityPanel()) }
+  panel(); react.effects[0](); await tick(); await tick()
+  let tree = panel()
+  const range = () => tree.find(node => node.type === 'input' && node.props.type === 'range')
+  assert.equal(range().props.value, 50)
+  range().props.onChange({ currentTarget: { value: '80' } }); tree = panel()
+  assert.equal(writes.length, 0, '拖动不应连续写入宿主配置')
+  await tree.find(node => node.type === 'form').props.onSubmit({ preventDefault() {} })
+  tree = panel()
+  assert.deepEqual(writes[0], { agent: { svgPreference: 80 } })
+  assert.equal(range().props.value, 80)
+  assert.equal(node.nextElementSibling, figure, '仅保存生成偏好不应重建已有图表')
+  assert.equal(tree.find(node => node.type === 'button' && node.props.type === 'submit').props.disabled, true)
+  rejectWrite = true
+  range().props.onChange({ currentTarget: { value: '20' } }); tree = panel()
+  await tree.find(node => node.type === 'form').props.onSubmit({ preventDefault() {} }); tree = panel()
+  assert.equal(saved, 80)
+  assert.equal(range().props.value, 20)
+  assert.equal(tree.find(node => node.type === 'button' && node.props.type === 'submit').props.disabled, false)
+  assert.ok(tree.some(node => node.props?.role === 'alert'))
+})

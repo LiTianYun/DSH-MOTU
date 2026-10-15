@@ -215,9 +215,9 @@ describe('提示段与技能摘要随启用集合变化', () => {
     assert.ok(text.indexOf('主动画一张图') < text.indexOf('```mermaid'), '指令应排在栅栏清单之前')
   })
 
-  it('提示段优先推荐手写 SVG，并提醒检查结构与文字溢出', () => {
+  it('提示段保留手写 SVG 支持，并提醒检查结构与文字溢出', () => {
     const text = promptText({}, renderers)
-    assert.ok(text.includes('优先手写 ```svg'), '应推荐手写 svg')
+    assert.ok(text.includes('选择手写 ```svg 时'), '应保留手写 svg 的结构与排版规范')
     assert.ok(text.includes('viewBox'), '应给出尺寸建议')
     const config = { renderers: { svg: { enabled: false } } }
     assert.ok(!promptText(config, enabledRenderers(config)).includes('优先手写'), '关掉 svg 后不应再推荐')
@@ -249,6 +249,36 @@ describe('提示段与技能摘要随启用集合变化', () => {
 })
 
 describe('配置写入（设置页开关的数据通道）', () => {
+  it('绘图偏好默认均衡，只接受 0 到 100 的整数', async () => {
+    assert.equal(Config({}).agent.svgPreference, 50)
+    for (const value of [0, 20, 50, 80, 100]) assert.deepEqual(sanitizeConfigPatch({ agent: { svgPreference: value } }), { agent: { svgPreference: value } })
+    for (const value of [-1, 101, 50.5, NaN, Infinity, '80', null]) assert.deepEqual(sanitizeConfigPatch({ agent: { svgPreference: value } }), {})
+    const harness = mount({ agent: { svgPreference: 80 } })
+    try {
+      const value = JSON.parse((await call(harness.routes, 'GET', '/dsh-visual-kit/config')).body).value
+      assert.equal(value.settings.svgPreference, 80)
+      assert.match(value.prompt, /手写 SVG 80/)
+    } finally { harness.dispose() }
+  })
+
+  it('偏好同步到常驻提示与实际注册的技能，不覆盖用户指定或停用开关', () => {
+    for (const [weight, description] of [[0, '常规引擎优先'], [50, '按任务均衡选择'], [100, '手写 SVG 优先']]) {
+      const registrations = []
+      const ctx = { webServer: { register: () => () => {} }, get: key => key === 'skills' ? { register: value => { registrations.push(value); return () => {} } } : undefined }
+      const config = { agent: { svgPreference: weight } }
+      const dispose = apply(ctx, config)
+      try {
+        assert.ok(promptText(config, enabledRenderers(config)).includes(description))
+        assert.ok(registrations[0].content.includes(description))
+        assert.match(registrations[0].content, /用户明确指定的画法优先/)
+        if (weight === 0) assert.ok(!registrations[0].content.includes('语义图**优先手写'))
+      } finally { dispose() }
+    }
+    const off = { agent: { svgPreference: 100 }, renderers: { svg: { enabled: false } } }
+    assert.ok(!promptText(off, enabledRenderers(off)).includes('手写 SVG 优先'))
+    assert.ok(!promptText(off, enabledRenderers(off)).includes('```svg'))
+  })
+
   it('白名单只放行 schema 声明的字段与类型', () => {
     const clean = sanitizeConfigPatch({
       behavior: { autoRender: false, 不存在的字段: 1, debounceMs: '不是数字' },
