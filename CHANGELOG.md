@@ -2,6 +2,13 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.0] — 2026-10-15
+
+- 新增「**放大展示**」：图框工具栏可把图铺满窗口，滚轮按指针位置缩放、拖拽平移，
+  支持 `+`/`−`/`适应`/`1:1` 与键盘（`Esc` 关闭、`0` 适应、`1` 原始尺寸、方向键平移）。
+  展示的是快照 SVG（与下载同一份字节），静态图与交互图同一条路径；
+  一次只开一个遮罩层，关闭后归还焦点与页面滚动，插件卸载时一并收掉。
+
 ## [0.3.0] — 2026-10-15
 
 - 新增显式 `echarts-interactive` 模式，支持悬停数值、图例、区间缩放、重置和导出当前 SVG；普通 `echarts` 保留静态行为。
@@ -47,6 +54,7 @@
 - 由渲染器清单派生的配置 Schema、常驻提示段与 `dsh-visualization` 技能。
 - 宿主半路由：`/config`、`/renderers.json`、`/assets/*`、`/health`、`/diag`。
 
+[0.4.0]: https://github.com/molanxuan-del/DSH-MOTU/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/molanxuan-del/DSH-MOTU/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/molanxuan-del/DSH-MOTU/releases/tag/v0.2.0
 [0.1.0]: https://github.com/molanxuan-del/DSH-MOTU/commit/211c2a4
