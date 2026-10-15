@@ -51,7 +51,8 @@
     "vendor": "node scripts/vendor.mjs",
     "test": "node --test",
     "check:renderers": "node scripts/check-renderers.mjs",
-    "check:ui": "node scripts/check-ui.mjs"
+    "check:ui": "node scripts/check-ui.mjs",
+    "showcase": "node scripts/showcase.mjs"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.4"

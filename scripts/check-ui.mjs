@@ -134,6 +134,76 @@ try {
   assert.ok(requests >= 1)
   await blocked.close()
   checks.push('真实引擎加载失败保留三份源码，不无限重试')
+  // Reproduce a live upgrade from a client whose retained stylesheet predates
+  // the viewer. A fresh-page-only test misses this failure in the real host.
+  const upgraded = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+  await upgraded.goto(fixture.url + '/?onlyLive')
+  await upgraded.waitForSelector('.vk-figure[data-vk-display-state="ready"]')
+  await upgraded.evaluate(() => {
+    stopMotu()
+    document.getElementById('dsh-visual-kit-styles').textContent = '.vk-figure { border: 1px solid gray; }'
+  })
+  await upgraded.addScriptTag({ url: fixture.url + '/client.js' })
+  await upgraded.evaluate(() => {
+    motu.apply({ effect(fn) { window.stopUpgradedMotu = fn() }, get() {} })
+    motu.internals.SessionProbe({ sessionId: 'upgraded-session' })
+  })
+  await upgraded.waitForSelector('.vk-figure[data-vk-display-state="ready"]')
+  // Native desktop window controls sit above web content. Reproduce their hit
+  // area without invoking real minimize/maximize/close operations.
+  await upgraded.evaluate(() => {
+    const native = document.createElement('button')
+    native.id = 'fixture-native-window-controls'
+    native.textContent = '—  □  ×'
+    native.style.cssText = 'position:fixed;top:0;right:0;width:150px;height:40px;z-index:2147483647;background:#f4f3ef;color:#444441;border:0'
+    window.nativeWindowCloseHits = 0
+    native.onclick = () => window.nativeWindowCloseHits++
+    document.body.append(native)
+  })
+  await upgraded.locator('#live-bar [data-vk-action="expand"]').click()
+  const upgradedView = await upgraded.evaluate(() => {
+    const root = document.querySelector('.vk-lightbox'), style = getComputedStyle(root), box = root.getBoundingClientRect()
+    const pixel = document.createElement('canvas')
+    pixel.width = pixel.height = 1
+    const context = pixel.getContext('2d')
+    context.fillStyle = style.backgroundColor
+    context.fillRect(0, 0, 1, 1)
+    return { position: style.position, background: style.backgroundColor, opacity: style.opacity,
+      alpha: context.getImageData(0, 0, 1, 1).data[3],
+      box: [box.x, box.y, box.width, box.height], viewport: [innerWidth, innerHeight],
+      styles: document.querySelectorAll('#dsh-visual-kit-styles').length }
+  })
+  assert.equal(upgradedView.position, 'fixed', '热更新后仍须为独立看图层')
+  assert.deepEqual(upgradedView.box, [0, 0, ...upgradedView.viewport], '必须覆盖整个窗口')
+  assert.equal(upgradedView.opacity, '1')
+  assert.equal(upgradedView.styles, 1)
+  assert.equal(upgradedView.alpha, 255, `背景应完全不透明，实际 ${upgradedView.background}`)
+  for (const width of [1280, 375]) {
+    await upgraded.setViewportSize({ width, height: 900 })
+    const controls = await upgraded.evaluate(() => {
+      const native = document.getElementById('fixture-native-window-controls').getBoundingClientRect()
+      return [...document.querySelectorAll('.vk-lightbox-tools button')].map(button => {
+        const box = button.getBoundingClientRect()
+        return { label: button.getAttribute('aria-label'),
+          overlap: box.left < native.right && box.right > native.left && box.top < native.bottom && box.bottom > native.top,
+          onScreen: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight }
+      })
+    })
+    for (const control of controls) {
+      assert.equal(control.overlap, false, `${width}px：${control.label} 不能与原生窗口控件重叠`)
+      assert.equal(control.onScreen, true, `${width}px：${control.label} 必须完整可见`)
+    }
+  }
+  await upgraded.screenshot({ path: join(out, 'lightbox-upgrade.png') })
+  await upgraded.getByRole('button', { name: '关闭放大展示（Esc）', exact: true }).click()
+  assert.equal(await upgraded.locator('.vk-lightbox').count(), 0)
+  assert.equal(await upgraded.evaluate(() => nativeWindowCloseHits), 0, '看图关闭按钮不能触发窗口关闭')
+  assert.equal(await upgraded.evaluate(() => document.body.style.overflow), '')
+  await upgraded.evaluate(() => stopUpgradedMotu())
+  await upgraded.close()
+  checks.push('旧样式热更新后放大全屏且完全不透底，关闭恢复页面')
+  checks.push('1280px 与 375px 下看图控件避开原生窗口按钮，可独立点击关闭')
+
   // 放大展示：密集的图在 360px 画布里缩到看不清，这条走真实鼠标与键盘。
   const enlarge = page.locator('#static-echarts [data-vk-action="expand"]')
   await enlarge.scrollIntoViewIfNeeded()

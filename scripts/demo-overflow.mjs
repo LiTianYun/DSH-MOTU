@@ -101,7 +101,7 @@ const demo = `digraph kit {
   client -> host [label="诊断信标", style=dashed];
 }`
 
-mkdirSync(join(root, 'preview'), { recursive: true })
+mkdirSync(join(root, '.scratch', 'preview'), { recursive: true })
 
 const envFor = (measure) => ({
   loadEngine: async () => ({ Viz: window.Viz }),
@@ -131,8 +131,8 @@ const beforeDefaults = demo.replace(
 const viz = await window.Viz.instance()
 const beforeSvg = viz.renderString(beforeDefaults, { format: 'svg' })
 const after = await ADAPTERS.graphviz.render(demo, envFor(true))
-writeFileSync(join(root, 'preview', 'demo-arch-before.svg'), beforeSvg, 'utf8')
-writeFileSync(join(root, 'preview', 'demo-arch-after.svg'), after.markup, 'utf8')
+writeFileSync(join(root, '.scratch', 'preview', 'demo-arch-before.svg'), beforeSvg, 'utf8')
+writeFileSync(join(root, '.scratch', 'preview', 'demo-arch-after.svg'), after.markup, 'utf8')
 
 // 量化对比：逐节点文字宽 vs 盒宽（pt → px 按 96/72）
 const host = document.createElement('div')
@@ -153,4 +153,4 @@ for (const [label, svg] of [['修复前', beforeSvg], ['修复后', after.markup
   }
   console.log(`${label}: 最大文字溢出 ${worst <= 0 ? 0 : worst.toFixed(1)}px (${worstLabel})`)
 }
-console.log('\nwrote preview/demo-arch-before.svg / demo-arch-after.svg')
+console.log('\nwrote .scratch/preview/demo-arch-before.svg / demo-arch-after.svg')

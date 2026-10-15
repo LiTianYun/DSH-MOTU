@@ -1,0 +1,50 @@
+[
+  {
+    "id": "mermaid-flowchart",
+    "renderer": "mermaid",
+    "title": "流程图 · 带子图的分层调用",
+    "size": "702×707"
+  },
+  {
+    "id": "mermaid-sequence",
+    "renderer": "mermaid",
+    "title": "时序图 · 一次支付交互",
+    "size": "660×601"
+  },
+  {
+    "id": "graphviz-deps",
+    "renderer": "graphviz",
+    "title": "依赖图 · 自动布局大量节点",
+    "size": "478×271"
+  },
+  {
+    "id": "nomnoml-states",
+    "renderer": "nomnoml",
+    "title": "状态机 · 小而清楚的框线图",
+    "size": "566×335"
+  },
+  {
+    "id": "echarts-combo",
+    "renderer": "echarts",
+    "title": "组合图 · 柱状 + 折线双轴",
+    "size": "1000×460"
+  },
+  {
+    "id": "echarts-donut",
+    "renderer": "echarts",
+    "title": "环形图 · 占比",
+    "size": "1000×460"
+  },
+  {
+    "id": "vega-lite-layered",
+    "renderer": "vega-lite",
+    "title": "分层统计图 · 柱 + 趋势线",
+    "size": "467×258"
+  },
+  {
+    "id": "svg-comparison",
+    "renderer": "svg",
+    "title": "手写 SVG · 概念对照",
+    "size": "680×250"
+  }
+]

@@ -59,6 +59,23 @@ it('快照字符串解析成按 viewBox 定尺寸的 SVG 元素', (t) => {
   assert.equal(svg.getAttribute('height'), null)
 })
 
+it('放大入口更新热重载留下的旧样式，且只保留一份样式表', (t) => {
+  const env = harness(t)
+  const old = env.document.createElement('style')
+  old.id = 'dsh-visual-kit-styles'
+  old.textContent = '.vk-figure { border: 1px solid gray; }'
+  env.document.head.append(old)
+  open(env.window)
+  assert.equal(env.document.getElementById(old.id), old, '复用样式节点，避免重复注入')
+  assert.match(old.textContent, /\.vk-lightbox-stage/)
+  assert.equal(env.document.querySelectorAll('#dsh-visual-kit-styles').length, 1)
+  assert.equal(env.window.getComputedStyle(env.document.querySelector('.vk-lightbox')).position, 'fixed')
+  env.closeLightbox()
+  old.textContent = '.vk-figure { border: 1px solid gray; }'
+  open(env.window)
+  assert.match(old.textContent, /\.vk-lightbox-stage/, '再次打开时也能恢复被替换的样式')
+})
+
 it('快照解析对垃圾输入返回 null 而不是抛异常', (t) => {
   const { snapshotToSvg } = harness(t)
   for (const bad of ['', '   ', 'not markup at all', '{"json":true}', '<div>不是 svg</div>']) {

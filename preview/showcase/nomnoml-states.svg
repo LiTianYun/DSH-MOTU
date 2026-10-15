@@ -1,0 +1,127 @@
+<svg version="1.1" baseProfile="full" width="566" height="335" viewBox="0 0 565.6260162601626 335" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events" style="">
+	<desc>#font: Microsoft YaHei
+	#fontSize: 13
+	#padding: 22
+	#fill: #f7f8fb
+	#stroke: #8a94a6
+	#lineWidth: 1.25
+	#direction: right
+	#padding: 12
+	[&lt;frame&gt;订单状态|
+	  [待支付] 支付成功 -&gt; [已支付]
+	  [待支付] 超时 -&gt; [已取消]
+	  [已支付] 发货 -&gt; [已发货]
+	  [已发货] 签收 -&gt; [已完成]
+	  [已支付] 退款 -&gt; [已退款]
+	]</desc>
+	<g stroke-width="1.0" text-align="left" font="12pt Helvetica, Arial, sans-serif" font-size="13pt" font-family="Microsoft YaHei" font-weight="bold" font-style="normal">
+		<g font-family="Microsoft YaHei" font-size="13pt" font-weight="bold" font-style="normal" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke="#8a94a6">
+			<g stroke="transparent" fill="transparent">
+				<rect x="0.0" y="0.0" height="335.0" width="565.6" stroke="none"></rect>
+			</g>
+			<g transform="translate(12, 12)" fill="#8a94a6">
+				<g transform="translate(20, 20)">
+					<g data-name="订单状态">
+						<g fill="#f7f8fb" stroke="#8a94a6" data-name="订单状态">
+							<rect x="0.0" y="0.0" height="271.0" width="501.6" data-name="订单状态"></rect>
+							<path d="M0.0 42.0 L82.5 42.0 L103.5 21.0 L103.5 0.0" fill="none" data-name="订单状态"></path>
+						</g>
+						<g transform="translate(0, 0)" font-family="Microsoft YaHei" font-size="13pt" font-weight="normal" font-style="normal" data-name="订单状态" data-compartment="0">
+							<g transform="translate(12, 12)" fill="#8a94a6" text-align="left" data-name="订单状态" data-compartment="0">
+								<text x="0.0" y="15.3" stroke="none" data-name="订单状态" data-compartment="0">订单状态</text>
+								
+							</g>
+						</g>
+						<g transform="translate(0, 42)" font-family="Microsoft YaHei" font-size="13pt" font-weight="normal" font-style="normal" data-name="订单状态" data-compartment="1">
+							<g transform="translate(25.6260162601626, 12)" fill="#8a94a6" data-name="订单状态" data-compartment="1">
+								<g transform="translate(20, 20)" fill="#8a94a6" font-family="Microsoft YaHei" font-size="13pt" font-weight="normal" font-style="normal" data-name="订单状态" data-compartment="1">
+									<text x="-13.6" y="70.0" stroke="none" data-name="订单状态" data-compartment="1">支付成功</text>
+									<path d="M67.7 82.0 L96 62 L109.33333333333333 62 L109.3 62.0 " fill="none" data-name="订单状态" data-compartment="1"></path>
+									<path d="M102.7 67.3 L109.3 62.0 L102.7 56.7 L116.0 62.0 Z" data-name="订单状态" data-compartment="1"></path>
+									<text x="21.0" y="149.0" stroke="none" data-name="订单状态" data-compartment="1">超时</text>
+									<path d="M67.7 124.0 L96 144 L109.33333333333333 144 L109.3 144.0 " fill="none" data-name="订单状态" data-compartment="1"></path>
+									<path d="M102.7 149.3 L109.3 144.0 L102.7 138.7 L116.0 144.0 Z" data-name="订单状态" data-compartment="1"></path>
+									<text x="137.0" y="29.0" stroke="none" data-name="订单状态" data-compartment="1">发货</text>
+									<path d="M183.7 41.0 L212 21 L225.33333333333334 21 L225.3 21.0 " fill="none" data-name="订单状态" data-compartment="1"></path>
+									<path d="M218.7 26.3 L225.3 21.0 L218.7 15.7 L232.0 21.0 Z" data-name="订单状态" data-compartment="1"></path>
+									<text x="320.0" y="46.0" stroke="none" data-name="订单状态" data-compartment="1">签收</text>
+									<path d="M308.0 21.0 L328 21 L341.3333333333333 21 L341.3 21.0 " fill="none" data-name="订单状态" data-compartment="1"></path>
+									<path d="M334.7 26.3 L341.3 21.0 L334.7 15.7 L348.0 21.0 Z" data-name="订单状态" data-compartment="1"></path>
+									<text x="137.0" y="108.0" stroke="none" data-name="订单状态" data-compartment="1">退款</text>
+									<path d="M183.7 83.0 L212 103 L225.33333333333334 103 L225.3 103.0 " fill="none" data-name="订单状态" data-compartment="1"></path>
+									<path d="M218.7 108.3 L225.3 103.0 L218.7 97.7 L232.0 103.0 Z" data-name="订单状态" data-compartment="1"></path>
+									<g data-name="待支付">
+										<g fill="#f7f8fb" stroke="#8a94a6" data-name="待支付">
+											<rect x="0.0" y="82.0" height="42.0" width="76.0" data-name="待支付"></rect>
+										</g>
+										<g transform="translate(0, 82)" font-family="Microsoft YaHei" font-size="13pt" font-weight="bold" font-style="normal" data-name="待支付" data-compartment="0">
+											<g transform="translate(12, 12)" fill="#8a94a6" text-align="center" data-name="待支付" data-compartment="0">
+												<text x="26.0" y="15.3" stroke="none" text-anchor="middle" data-name="待支付" data-compartment="0">待支付</text>
+												
+											</g>
+										</g>
+									</g>
+									<g data-name="已支付">
+										<g fill="#f7f8fb" stroke="#8a94a6" data-name="已支付">
+											<rect x="116.0" y="41.0" height="42.0" width="76.0" data-name="已支付"></rect>
+										</g>
+										<g transform="translate(116, 41)" font-family="Microsoft YaHei" font-size="13pt" font-weight="bold" font-style="normal" data-name="已支付" data-compartment="0">
+											<g transform="translate(12, 12)" fill="#8a94a6" text-align="center" data-name="已支付" data-compartment="0">
+												<text x="26.0" y="15.3" stroke="none" text-anchor="middle" data-name="已支付" data-compartment="0">已支付</text>
+												
+											</g>
+										</g>
+									</g>
+									<g data-name="已取消">
+										<g fill="#f7f8fb" stroke="#8a94a6" data-name="已取消">
+											<rect x="116.0" y="123.0" height="42.0" width="76.0" data-name="已取消"></rect>
+										</g>
+										<g transform="translate(116, 123)" font-family="Microsoft YaHei" font-size="13pt" font-weight="bold" font-style="normal" data-name="已取消" data-compartment="0">
+											<g transform="translate(12, 12)" fill="#8a94a6" text-align="center" data-name="已取消" data-compartment="0">
+												<text x="26.0" y="15.3" stroke="none" text-anchor="middle" data-name="已取消" data-compartment="0">已取消</text>
+												
+											</g>
+										</g>
+									</g>
+									<g data-name="已发货">
+										<g fill="#f7f8fb" stroke="#8a94a6" data-name="已发货">
+											<rect x="232.0" y="0.0" height="42.0" width="76.0" data-name="已发货"></rect>
+										</g>
+										<g transform="translate(232, 0)" font-family="Microsoft YaHei" font-size="13pt" font-weight="bold" font-style="normal" data-name="已发货" data-compartment="0">
+											<g transform="translate(12, 12)" fill="#8a94a6" text-align="center" data-name="已发货" data-compartment="0">
+												<text x="26.0" y="15.3" stroke="none" text-anchor="middle" data-name="已发货" data-compartment="0">已发货</text>
+												
+											</g>
+										</g>
+									</g>
+									<g data-name="已完成">
+										<g fill="#f7f8fb" stroke="#8a94a6" data-name="已完成">
+											<rect x="348.0" y="0.0" height="42.0" width="76.0" data-name="已完成"></rect>
+										</g>
+										<g transform="translate(348, 0)" font-family="Microsoft YaHei" font-size="13pt" font-weight="bold" font-style="normal" data-name="已完成" data-compartment="0">
+											<g transform="translate(12, 12)" fill="#8a94a6" text-align="center" data-name="已完成" data-compartment="0">
+												<text x="26.0" y="15.3" stroke="none" text-anchor="middle" data-name="已完成" data-compartment="0">已完成</text>
+												
+											</g>
+										</g>
+									</g>
+									<g data-name="已退款">
+										<g fill="#f7f8fb" stroke="#8a94a6" data-name="已退款">
+											<rect x="232.0" y="82.0" height="42.0" width="76.0" data-name="已退款"></rect>
+										</g>
+										<g transform="translate(232, 82)" font-family="Microsoft YaHei" font-size="13pt" font-weight="bold" font-style="normal" data-name="已退款" data-compartment="0">
+											<g transform="translate(12, 12)" fill="#8a94a6" text-align="center" data-name="已退款" data-compartment="0">
+												<text x="26.0" y="15.3" stroke="none" text-anchor="middle" data-name="已退款" data-compartment="0">已退款</text>
+												
+											</g>
+										</g>
+									</g>
+								</g>
+							</g>
+						</g>
+					</g>
+				</g>
+			</g>
+		</g>
+	</g>
+</svg>

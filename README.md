@@ -14,17 +14,51 @@
 
 ## 效果
 
-手写 SVG 渲染器适合概念对照、时间线、路线图；仍需检查 SVG 结构、文字溢出与留白：
+以下都是本仓库产出的真实图形（`npm run showcase` 生成，走对话里同一条渲染管线）。每个渲染器给一到两个有代表性的用法。
 
-![两种缓存策略的对比](preview/design/01-comparison.svg)
+### Mermaid · ` ```mermaid `
 
-![工程师四级成长](preview/design/03-roadmap.svg)
+流程图、时序图、状态图、甘特图、饼图、脑图——覆盖面最广的一个。
 
-![Web 应用三层架构](preview/design/05-architecture.svg)
+![Mermaid 流程图：带子图的分层调用](preview/showcase/mermaid-flowchart.svg)
 
-![两周迭代甘特图](preview/design/10-gantt.svg)
+![Mermaid 时序图：一次支付交互](preview/showcase/mermaid-sequence.svg)
 
-以上十张都是本仓库生成器（`scripts/design-showcase.mjs`）产出的，用来演示同一套设计令牌覆盖的十种版式：对比 / 时间线 / 阶梯 / 闭环 / 分层架构 / 四象限 / 漏斗 / 流程 / 卡片网格 / 甘特。
+### Graphviz · ` ```dot ` / ` ```graphviz `
+
+节点多、关系杂时交给它自动布局；支持子图（cluster）分组。
+
+![Graphviz 依赖图：应用与存储的依赖关系](preview/showcase/graphviz-deps.svg)
+
+### nomnoml · ` ```nomnoml `
+
+语法极短，适合画小而清楚的框线图与状态机。
+
+![nomnoml 状态机：订单状态流转](preview/showcase/nomnoml-states.svg)
+
+### ECharts · ` ```echarts ` / ` ```echarts-interactive `
+
+数据图表首选：中文排版友好，双轴、图例、标签都开箱可用。
+
+![ECharts 组合图：柱状与折线双轴](preview/showcase/echarts-combo.svg)
+
+![ECharts 环形图：流量来源占比](preview/showcase/echarts-donut.svg)
+
+### Vega-Lite · ` ```vega-lite `
+
+写规格而不是写配置：分层、分面、统计变换是它的强项。
+
+![Vega-Lite 分层图：柱状与趋势线](preview/showcase/vega-lite-layered.svg)
+
+### 手写 SVG · ` ```svg `
+
+语义图（对照、时间线、路线图、闭环、架构）优先用它：无需专用图表语法，成图效果也最可控。下面这张是其中一种版式，另外九种见 [`preview/design/`](preview/design)。
+
+![手写 SVG：单体与拆分的对照](preview/showcase/svg-comparison.svg)
+
+![手写 SVG：工程师四级成长](preview/design/03-roadmap.svg)
+
+> 手写 SVG 没有语法解析风险，但**结构、文字溢出与留白仍要自己检查** —— 这与引擎图不同，引擎会自己排版。
 
 ## 六种渲染方式
 
@@ -56,6 +90,10 @@
 ## 放大展示
 
 密集的图在 360px 画布里会缩到看不清。图框工具栏的「**放大**」把图铺满窗口，**操作方式与看图一致**：
+
+打开后进入完全不透明的暖深色看图界面，聊天、侧边栏和文件列表不会透出。插件热更新时会同步刷新样式，不会因旧样式残留而把图叠进正文。
+
+看图控件集中在窗口底部，避开 DSH 右上角的最小化、最大化和关闭按钮；窄屏下仍可完整操作。
 
 - **点图形区域任意处关闭**（拖动过就不算点击，不会误关）；
 - **滚轮连续缩放**，一格约 15%（触控板的细碎位移更小），且**光标下的细节留在光标下**；
@@ -133,8 +171,11 @@ npm test               # 宿主、六适配器、展示生命周期与交互回�
 npm run check:renderers # 无头渲染六个引擎，产出真实产物并校验
 npx playwright install chromium
 npm run check:ui        # 真实 Chromium：悬停/图例/区间缩放/导出/主题/取消/失败注入
-node scripts/design-showcase.mjs   # 重新生成 README 里那十张设计示例
+npm run showcase        # 重新生成上面那组展示图（真实浏览器渲染，几何异常会失败）
+node scripts/design-showcase.mjs   # 重新生成手写 SVG 那十张设计示例
 ```
+
+**关于两种"生成图"的脚本**：`scripts/showcase.mjs` 在**真实浏览器**里渲染并写入 `preview/showcase/`（README 用图），带几何守卫——产物尺寸不合理就报错，因为无头环境测不了文字宽度，mermaid 流程图会算出错误高度。`scripts/preview.mjs` 是快速冒烟，写进 `.scratch/preview/`、不入库，几何不作为依据。
 
 Chromium 夹具使用真实引擎与插件路由，结果与浅深色窄屏截图写入 `.scratch/ui-check/`。夹具不替代 DSH 宿主验收；宿主需提供 `configEditor` 才能持久化开关。本地支持基线为 DSH `0.2.0-rc.2`。
 

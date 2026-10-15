@@ -3,8 +3,11 @@
  *
  *   node scripts/preview.mjs
  *
- * Lets the polished chrome be reviewed as files before a page refresh, with
- * the same code path the browser runs.
+ * A fast smoke check of the figure chrome, written to `.scratch/preview/` and
+ * not committed. NOTE: this runs in a headless DOM, which cannot measure text —
+ * engines that lay out from `getBBox()` (mermaid flowcharts) come out with wrong
+ * geometry here. Anything a human will look at belongs in `scripts/showcase.mjs`,
+ * which renders in a real browser and refuses degenerate output.
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -16,7 +19,7 @@ import { renderers } from '../lib/renderers/manifest.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
-const outDir = join(root, 'preview')
+const outDir = join(root, '.scratch', 'preview')
 
 const dom = setupDom({ scripts: true })
 const { window } = dom
