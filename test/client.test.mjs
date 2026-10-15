@@ -145,6 +145,26 @@ describe('bannerLanguage', () => {
     node.innerHTML = '<pre><code>const x = 1</code></pre>'
     assert.equal(bannerLanguage(node), '')
   })
+
+  it('宿主隐藏未知语言时，从会话公开快照区分同源码的静态与交互栅栏', () => {
+    const owner = document.createElement('div')
+    owner.dataset.chatNodeKey = 'answer'
+    const source = '{"series":[{"data":[1]}]}'
+    for (let i = 0; i < 2; i++) {
+      const node = document.createElement('div')
+      node.className = 'md-code-block'
+      node.innerHTML = '<div data-code-block-banner><span>代码块</span></div><pre data-code-block-content><code></code></pre>'
+      node.querySelector('code').textContent = source
+      owner.append(node)
+    }
+    document.body.append(owner)
+    loaded.client.internals.SessionProbe({ sessionId: 'host', useChat: () => ({ nodes: new Map([['answer', { data: { blocks: [{ kind: 'text', text: `\`\`\`echarts\n${source}\n\`\`\`\n\n~~~~echarts-interactive\n${source}\n~~~~` }] } }]]) }) })
+    assert.equal(bannerLanguage(owner.children[0]), 'echarts')
+    assert.equal(bannerLanguage(owner.children[1]), 'echarts-interactive')
+    loaded.client.internals.SessionProbe({ sessionId: 'other' })
+    assert.equal(bannerLanguage(owner.children[1]), '', '切换会话后不沿用旧快照')
+    owner.remove()
+  })
 })
 
 describe('readSource 与 hash', () => {
@@ -546,8 +566,8 @@ describe('自修通道（会话探针 + 投递 + 滑条）', () => {
       },
     }
     registerSessionProbe(ctx)
-    assert.deepEqual(injected, ['slots', 'conversation.chat.turnTail'])
-    assert.equal(registered[0].options.name, 'conversation.chat.turnTail')
+    assert.deepEqual(injected, ['slots', 'conversation.composer.dock'])
+    assert.equal(registered[0].options.name, 'conversation.composer.dock')
     assert.equal(registered[0].component, SessionProbe)
   })
 

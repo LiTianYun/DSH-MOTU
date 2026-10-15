@@ -1,0 +1,152 @@
+/** Run real Chromium interaction and failure tests. npm run check:ui */
+import assert from 'node:assert/strict'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
+import { chromium } from 'playwright'
+import { startUiFixture, chartSamples } from './ui-fixture.mjs'
+
+const out = fileURLToPath(new URL('../.scratch/ui-check/', import.meta.url))
+await mkdir(out, { recursive: true })
+const fixture = await startUiFixture()
+let browser
+const checks = []
+try {
+  browser = await chromium.launch({ headless: true, ...(process.env.MOTU_CHROMIUM_PATH ? { executablePath: process.env.MOTU_CHROMIUM_PATH } : {}) })
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto(fixture.url)
+  await page.waitForFunction(() => document.querySelectorAll('.vk-figure[data-vk-display-state="ready"]').length === 9)
+  assert.equal(await page.locator('#live-bar .vk-figure').getAttribute('data-vk-mode'), 'interactive')
+  assert.equal(await page.locator('#static-echarts .vk-figure').getAttribute('data-vk-mode'), 'static')
+  checks.push('六个静态引擎与柱/线/饼交互图真实挂载')
+
+  // Observe lifecycle on the real ECharts instances, without replacing rendering.
+  await page.evaluate(() => {
+    window.lifecycle = { mounted: 0, disposed: 0, static: 0 }
+    const init = echarts.init
+    echarts.init = function(target, theme, options) {
+      if (target && window.failMount) { window.failMount--; throw new Error('测试挂载失败') }
+      if (!target && window.failStatic) { window.failStatic--; throw new Error('测试静态失败') }
+      if (!target) lifecycle.static++
+      const instance = init(target, theme, options)
+      if (target) lifecycle.mounted++
+      const dispose = instance.dispose.bind(instance)
+      instance.dispose = () => { lifecycle.disposed++; dispose() }
+      return instance
+    }
+    window.chartOf = id => echarts.getInstanceByDom(document.querySelector('#'+id+' .vk-mount'))
+  })
+
+  for (const id of ['live-bar', 'live-line', 'live-pie']) {
+    const mount = page.locator(`#${id} .vk-mount`)
+    await mount.scrollIntoViewIfNeeded()
+    const box = await mount.boundingBox()
+    const point = await page.evaluate(id => {
+      const chart = chartOf(id)
+      if (id === 'live-bar') {
+        const p = chart.getModel().getSeriesByIndex(0).getData().getItemLayout(0)
+        return [p.x + p.width/2, p.y + p.height/2]
+      }
+      if (id === 'live-pie') {
+        const p = chart.getModel().getSeriesByIndex(0).getData().getItemLayout(0)
+        const angle = (p.startAngle + p.endAngle) / 2
+        const radius = (p.r + p.r0) / 2
+        return [p.cx + Math.cos(angle)*radius, p.cy + Math.sin(angle)*radius]
+      }
+      return chart.convertToPixel({ seriesIndex: 0 }, ['2日', 4])
+    }, id)
+    await page.mouse.move(box.x + point[0], box.y + point[1])
+    await page.waitForFunction(id => chartOf(id)._componentsViews.find(view => view.type === 'tooltip')._tooltipContent.isShow(), id)
+    assert.equal(await page.evaluate(id => chartOf(id).getOption().tooltip[0].renderMode, id), 'richText')
+    console.log(`ok 悬停 ${id}`)
+  }
+  checks.push('真实鼠标悬停展示 richText 数值提示')
+  await page.mouse.move(0, 0)
+  await page.locator('#live-bar svg text').filter({ hasText: /^销量$/ }).first().click()
+  await page.waitForFunction(() => chartOf('live-bar').getOption().legend[0].selected['销量'] === false)
+  await page.locator('#live-bar').getByRole('button', { name: '重置图表' }).click()
+  await page.waitForFunction(() => chartOf('live-bar').getOption().legend[0].selected['销量'] !== false)
+  checks.push('图例筛选与重置通过真实控件操作')
+  const line = page.locator('#live-line .vk-mount')
+  await line.scrollIntoViewIfNeeded()
+  const lineBox = await line.boundingBox()
+  await page.mouse.move(lineBox.x + lineBox.width/2, lineBox.y + 120)
+  await page.mouse.wheel(0, -300)
+  await page.waitForFunction(() => chartOf('live-line').getOption().dataZoom[0].end - chartOf('live-line').getOption().dataZoom[0].start < 100)
+  await page.locator('#live-line').getByRole('button', { name: '重置图表' }).click()
+  await page.waitForFunction(() => chartOf('live-line').getOption().dataZoom[0].start === 0 && chartOf('live-line').getOption().dataZoom[0].end === 100)
+  checks.push('滚轮区间缩放与重置恢复原始范围')
+  const downloadEvent = page.waitForEvent('download')
+  await page.locator('#live-bar').getByRole('button', { name: '下载 SVG' }).click()
+  const download = await downloadEvent
+  await download.saveAs(join(out, 'interactive.svg'))
+  checks.push('当前交互图可导出 SVG')
+
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.waitForFunction(() => chartOf('live-bar').getWidth() <= 350)
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  await page.screenshot({ path: join(out, 'mobile-light.png'), fullPage: true })
+  await page.evaluate(() => document.documentElement.dataset.theme = 'dark')
+  await page.waitForFunction(() => document.querySelectorAll('.vk-figure[data-vk-theme="dark"][data-vk-display-state="ready"]').length === 9)
+  await page.screenshot({ path: join(out, 'mobile-dark.png'), fullPage: true })
+  checks.push('375px 窄屏 resize 与主题重建正常，无页面横向溢出')
+
+  await page.evaluate(option => addBlock('hidden', 'echarts-interactive', JSON.stringify(option), true), chartSamples.bar)
+  await page.waitForFunction(() => document.querySelector('#hidden .vk-figure')?.dataset.vkDisplayState === 'loading')
+  assert.equal(await page.evaluate(() => echarts.getInstanceByDom(document.querySelector('#hidden .vk-mount'))), undefined)
+  await page.evaluate(() => document.querySelector('#hidden').style.display = '')
+  await page.waitForFunction(() => document.querySelector('#hidden .vk-figure')?.dataset.vkDisplayState === 'ready')
+  checks.push('隐藏容器不初始化，恢复尺寸后自动挂载')
+
+  await page.evaluate(option => { window.failMount = 1; addBlock('fallback', 'echarts-interactive', JSON.stringify(option)) }, chartSamples.bar)
+  await page.waitForFunction(() => document.querySelector('#fallback .vk-figure')?.dataset.vkDisplayState === 'fallback')
+  assert.match(await page.locator('#fallback .vk-fallback').innerText(), /测试挂载失败/)
+  await page.locator('#fallback').getByRole('button', { name: '把源码与诊断信息复制并上报' }).click()
+  await page.waitForFunction(() => document.querySelector('#fallback .vk-status').textContent.includes('已上报'))
+  const report = await (await page.request.get(fixture.url + '/dsh-visual-kit/diag')).json()
+  assert.equal(report.value.reports[0].mode, 'interactive')
+  assert.equal(report.value.reports[0].phase, 'mount')
+  checks.push('挂载失败静态降级，真实诊断路由保留失败模式与阶段')
+  await page.evaluate(option => { window.failMount = 1; window.failStatic = 1; addBlock('failure', 'echarts-interactive', JSON.stringify(option)) }, chartSamples.bar)
+  await page.waitForFunction(() => document.querySelector('#failure pre')?.dataset.vkState === 'failed')
+  assert.equal(await page.locator('#failure pre:visible').count(), 1)
+  assert.match(await page.locator('#failure .vk-error').innerText(), /测试静态失败/)
+  checks.push('降级再次失败保留源码与错误说明')
+
+  const before = await page.evaluate(() => lifecycle.static)
+  await page.evaluate(option => addBlock('timeout', 'echarts-interactive', JSON.stringify(option), true), chartSamples.bar)
+  await page.waitForFunction(() => document.querySelector('#timeout .vk-figure')?.dataset.vkDisplayState === 'fallback', undefined, { timeout: 20_000 })
+  assert.equal(await page.evaluate(() => lifecycle.static), before + 1)
+  checks.push('真实 15 秒初始化超时只静态降级一次')
+  await page.evaluate(() => { const code = document.querySelector('#live-bar pre code'); code.textContent = '{"series":[]}'; code.textContent = JSON.stringify({series:[{type:'pie',data:[1,2]}]}) })
+  await page.waitForFunction(() => chartOf('live-bar')?.getOption().series[0].type === 'pie')
+  await page.evaluate(() => motu.internals.SessionProbe({ sessionId: 'second-session' }))
+  await page.waitForFunction(() => document.querySelectorAll('.vk-figure[data-vk-display-state="loading"]').length === 0)
+  checks.push('快速源码更新与会话切换不保留旧实例')
+  const blocked = await browser.newPage()
+  let requests = 0
+  await blocked.route('**/assets/echarts/**', route => { requests++; return route.abort() })
+  await blocked.goto(fixture.url + '/?onlyLive')
+  await blocked.waitForFunction(() => document.querySelectorAll('pre[data-vk-state="failed"]').length === 3)
+  assert.equal(await blocked.locator('pre:visible').count(), 3)
+  assert.ok(requests >= 1)
+  await blocked.close()
+  checks.push('真实引擎加载失败保留三份源码，不无限重试')
+  const config = await page.request.post(fixture.url + '/dsh-visual-kit/config', { data: { renderers: { echarts: { interactive: false } } } })
+  assert.equal(config.status(), 200)
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await page.waitForFunction(() => document.querySelector('#live-bar .vk-figure')?.dataset.vkMode === 'static')
+  await page.request.post(fixture.url + '/dsh-visual-kit/config', { data: { behavior: { autoRender: false } } })
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await page.waitForFunction(() => document.querySelectorAll('.vk-figure').length === 0)
+  checks.push('实际配置路由控制交互降级和总开关还原')
+  await page.evaluate(() => stopMotu())
+  assert.equal(await page.locator('.vk-scratch').count(), 0)
+  assert.deepEqual(errors, [])
+  checks.push('卸载清理与浏览器运行时错误检查通过')
+  await writeFile(join(out, 'results.json'), JSON.stringify({ checks, errors }, null, 2))
+  console.log(checks.map(check => `ok ${check}`).join('\n'))
+  console.log(`\n${checks.length} 组 Chromium 检查通过；产物：${out}`)
+} finally { await browser?.close(); await fixture.close() }

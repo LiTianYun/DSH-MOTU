@@ -1,6 +1,6 @@
 {
   "name": "dsh-visual-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "可视化套件 — render fenced blocks in the DSH web conversation as real diagrams and charts. Six pluggable renderers (Mermaid, Graphviz, nomnoml, ECharts, Vega-Lite, and hand-written SVG), every one configurable, integrity-checked and served by the plugin itself — no CDN, works offline.",
   "keywords": [
     "deepseek",
@@ -50,7 +50,8 @@
     "prepare": "node scripts/vendor.mjs",
     "vendor": "node scripts/vendor.mjs",
     "test": "node --test",
-    "check:renderers": "node scripts/check-renderers.mjs"
+    "check:renderers": "node scripts/check-renderers.mjs",
+    "check:ui": "node scripts/check-ui.mjs"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.4"
@@ -62,6 +63,7 @@
     "jsdom": "^29.1.1",
     "mermaid": "^11.17.2",
     "nomnoml": "^1.7.0",
+    "playwright": "1.64.1",
     "vega": "^6.0.0",
     "vega-lite": "^6.0.0"
   },

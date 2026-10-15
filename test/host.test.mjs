@@ -20,6 +20,82 @@ import { enabledRenderers, renderers } from '../lib/renderers/manifest.js'
 const here = fileURLToPath(new URL('..', import.meta.url))
 const VENDOR = join(here, 'vendor')
 
+describe('交互模式配置与能力声明', () => {
+  it('构造式宿主通过 effect 释放路由，重载与重复销毁不冲突', () => {
+    const routes = new Set(), effects = []
+    const ctx = {
+      webServer: { register(route) {
+        assert.ok(!routes.has(route.path), `重复路由 ${route.path}`)
+        routes.add(route.path)
+        return () => routes.delete(route.path)
+      } },
+      effect(setup) { effects.push(setup()) },
+    }
+    const returned = new apply(ctx, {})
+    assert.equal(routes.size, 5)
+    effects.splice(0).forEach(dispose => dispose())
+    assert.equal(routes.size, 0)
+    const second = new apply(ctx, {})
+    returned()
+    assert.equal(routes.size, 5, '旧实例重复销毁不能删除新实例的路由')
+    second()
+    effects.splice(0).forEach(dispose => dispose())
+    assert.equal(routes.size, 0)
+  })
+
+  it('同一 ECharts 开关管理两种语言，旧输出字段保留', async () => {
+    const harness = mount({ renderers: { echarts: { interactive: false } } })
+    try {
+      const result = await call(harness.routes, 'GET', '/dsh-visual-kit/renderers.json')
+      const spec = JSON.parse(result.body).renderers.find(spec => spec.id === 'echarts')
+      assert.equal(spec.output, 'svg')
+      assert.ok(spec.languages.includes('echarts-interactive'))
+      assert.equal(spec.modes.find(mode => mode.id === 'interactive').enabled, false)
+      const config = JSON.parse((await call(harness.routes, 'GET', '/dsh-visual-kit/config')).body)
+      assert.equal(config.value.settings.interactive, false)
+      assert.ok(!config.value.prompt.includes('echarts-interactive'))
+      const patch = sanitizeConfigPatch({ renderers: { echarts: { interactive: true } } })
+      assert.equal(patch.renderers.echarts.interactive, true)
+    } finally { harness.dispose() }
+  })
+
+  it('生成技能按实际启用集合隐藏交互语法与停用引擎', () => {
+    const registrations = []
+    const ctx = {
+      webServer: { register: () => () => {} },
+      get: (name) => name === 'skills' ? { register: value => { registrations.push(value); return () => {} } } : undefined,
+    }
+    const dispose = apply(ctx, { renderers: { echarts: { interactive: false }, svg: { enabled: false } } })
+    try {
+      assert.equal(registrations.length, 1)
+      assert.ok(!registrations[0].content.includes('echarts-interactive'))
+      assert.ok(!registrations[0].content.includes('## 手写 SVG 设计系统'))
+      assert.ok(!registrations[0].content.includes('| SVG 图示（手写） |'))
+      assert.match(registrations[0].content, /本机/)
+    } finally { dispose() }
+  })
+
+  it('默认宣传交互语法，关闭 ECharts 则两种语言均不宣传', () => {
+    const enabled = enabledRenderers({})
+    assert.match(promptText({}, enabled), /echarts-interactive/)
+    const config = { renderers: { echarts: { enabled: false } } }
+    assert.ok(!promptText(config, enabledRenderers(config)).includes('echarts-interactive'))
+    assert.equal(Config.dict.renderers.dict.echarts.dict.interactive.type, 'boolean')
+  })
+
+  it('总开关关闭后目录与模型侧不宣传正在运行的模式', async () => {
+    const config = { behavior: { autoRender: false } }
+    const harness = mount(config)
+    try {
+      assert.equal(promptText(config, enabledRenderers(config)), '')
+      const value = JSON.parse((await call(harness.routes, 'GET', '/dsh-visual-kit/config')).body).value
+      assert.equal(value.skill, '')
+      const catalogue = JSON.parse((await call(harness.routes, 'GET', '/dsh-visual-kit/renderers.json')).body)
+      assert.ok(catalogue.renderers.every(spec => spec.modes.every(mode => !mode.enabled)))
+    } finally { harness.dispose() }
+  })
+})
+
 /**
  * Mount the plugin against a captured route table.
  *
@@ -139,7 +215,7 @@ describe('提示段与技能摘要随启用集合变化', () => {
     assert.ok(text.indexOf('主动画一张图') < text.indexOf('```mermaid'), '指令应排在栅栏清单之前')
   })
 
-  it('提示段优先推荐手写 SVG（唯一没有解析风险的路径）', () => {
+  it('提示段优先推荐手写 SVG，并提醒检查结构与文字溢出', () => {
     const text = promptText({}, renderers)
     assert.ok(text.includes('优先手写 ```svg'), '应推荐手写 svg')
     assert.ok(text.includes('viewBox'), '应给出尺寸建议')
