@@ -39,7 +39,7 @@
     "id": "vega-lite-layered",
     "renderer": "vega-lite",
     "title": "分层统计图 · 柱 + 趋势线",
-    "size": "467×258"
+    "size": "467×251"
   },
   {
     "id": "svg-comparison",

@@ -130,13 +130,16 @@ const examples = [
     title: '环形图 · 占比',
     language: 'echarts',
     source: `{
-  "title": { "text": "流量来源", "left": "center" },
+  "title": { "text": "流量来源", "left": "center", "top": 8 },
+  "legend": { "bottom": 8, "left": "center" },
   "series": [
     {
       "type": "pie",
-      "radius": ["42%", "68%"],
-      "center": ["50%", "56%"],
-      "label": { "formatter": "{b} {d}%" },
+      "percentPrecision": 1,
+      "radius": ["46%", "72%"],
+      "center": ["50%", "52%"],
+      "label": { "position": "inside", "formatter": "{d}%", "color": "#FFFFFF", "fontSize": 13 },
+      "labelLine": { "show": false },
       "data": [
         { "value": 1048, "name": "搜索引擎" },
         { "value": 735, "name": "直接访问" },
@@ -168,7 +171,7 @@ const examples = [
   "layer": [
     { "mark": { "type": "bar", "color": "#B5D4F4" },
       "encoding": {
-        "x": { "field": "week", "type": "nominal", "axis": { "title": null } },
+        "x": { "field": "week", "type": "nominal", "axis": { "title": null, "labelAngle": 0 } },
         "y": { "field": "minutes", "type": "quantitative", "axis": { "title": "分钟" } }
       } },
     { "mark": { "type": "line", "color": "#185FA5", "strokeWidth": 2, "point": true },
