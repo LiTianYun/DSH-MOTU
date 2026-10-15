@@ -2,7 +2,7 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [0.3.0] — 未发布
+## [0.3.0] — 2026-10-15
 
 - 新增显式 `echarts-interactive` 模式，支持悬停数值、图例、区间缩放、重置和导出当前 SVG；普通 `echarts` 保留静态行为。
 - 展示句柄统一尺寸更新、快照与销毁；取消旧任务、隔离临时容器并处理迟到结果、零宽容器和初始化超时。
@@ -47,5 +47,6 @@
 - 由渲染器清单派生的配置 Schema、常驻提示段与 `dsh-visualization` 技能。
 - 宿主半路由：`/config`、`/renderers.json`、`/assets/*`、`/health`、`/diag`。
 
-[0.2.0]: https://github.com/molanxuan-del/DSH-MOTU/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/molanxuan-del/DSH-MOTU/releases/tag/v0.1.0
+[0.3.0]: https://github.com/molanxuan-del/DSH-MOTU/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/molanxuan-del/DSH-MOTU/releases/tag/v0.2.0
+[0.1.0]: https://github.com/molanxuan-del/DSH-MOTU/commit/211c2a4
