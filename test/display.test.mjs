@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { it } from 'node:test'
 import { setupDom } from '../scripts/dom-env.mjs'
+import { renderers } from '../lib/renderers/manifest.js'
 
 const source = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
 const tick = () => new Promise(resolve => setImmediate(resolve))
@@ -26,7 +27,10 @@ function stage(t, { timeout = 15_000, width = 600 } = {}) {
       async drain() { while(renderJobs.size) await Promise.allSettled([...renderJobs]) }
     }; return module.exports`)
   window.eval(testSource)
-  const spec = { id: 'echarts', label: 'ECharts', enabled: true, languages: ['echarts', 'echarts-interactive'], settings: { interactive: true } }
+  // The real manifest entry, not a hand-written copy: interactive dispatch now
+  // reads `modes`, so a fixture that omits them would silently test the wrong
+  // path (the same fixture/production drift that once hid a broken export).
+  const spec = { ...renderers.find((item) => item.id === 'echarts'), enabled: true, settings: { interactive: true } }
   const cat = { renderers: [spec], byLanguage: new Map(spec.languages.map(l => [l, spec.id])), behavior: { lazyRender: false }, presentation: {} }
   client.testing.setCatalogue(cat)
   const realMount = client.internals.ADAPTERS.echarts.mount
