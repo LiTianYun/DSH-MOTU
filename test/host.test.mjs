@@ -685,3 +685,25 @@ describe('asset 备份机制', () => {
     }
   })
 })
+
+it('版本锁步：宿主 rev 与 CLIENT_REV 一致，且都以 package.json 版本号开头', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  const client = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+  const host = readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8')
+  const clientRev = client.match(/const CLIENT_REV = '([^']+)'/)?.[1] ?? ''
+  const hostRev = host.match(/^const rev = '([^']+)'/m)?.[1] ?? ''
+  assert.ok(clientRev !== '' && hostRev !== '', '两处版本号都要能读到')
+
+  // 两者必须逐字相同：客户端用它做缓存失效，也对不上就会加载到旧客户端。
+  assert.equal(hostRev, clientRev, '宿主 rev 与 CLIENT_REV 必须一致')
+
+  // 允许 -settings-1 这类构建后缀，但数字部分必须跟上 package.json ——
+  // 这条纪律原先只写在 CHANGELOG 里、没有测试，于是它静默漂过一次。
+  for (const [name, value] of [['CLIENT_REV', clientRev], ['rev', hostRev]]) {
+    const exact = `v${pkg.version}`
+    assert.ok(
+      value === exact || value.startsWith(`${exact}-`),
+      `${name} 必须是 ${exact} 或以 ${exact}- 开头的构建后缀，当前是 ${value}`,
+    )
+  }
+})

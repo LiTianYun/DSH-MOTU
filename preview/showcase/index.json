@@ -49,7 +49,7 @@
   },
   {
     "id": "isometric-voxel",
-    "renderer": "isometric",
+    "renderer": "voxel",
     "title": "体素剖面 · 方块化的空间关系",
     "size": "680×430"
   },

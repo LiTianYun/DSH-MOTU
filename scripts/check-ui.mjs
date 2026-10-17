@@ -17,7 +17,15 @@ try {
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   await page.goto(fixture.url)
-  await page.waitForFunction(() => document.querySelectorAll('.vk-figure[data-vk-display-state="ready"]').length === 9)
+  // 图数量从目录推导：每加一个渲染器，夹具就多一块静态图（另有 3 块 live 交互图）
+  const readyFigures = await page.evaluate(async () => {
+    const catalogue = await (await fetch('/dsh-visual-kit/renderers.json')).json()
+    return catalogue.renderers.length + 3
+  })
+  await page.waitForFunction(
+    (expected) => document.querySelectorAll('.vk-figure[data-vk-display-state="ready"]').length === expected,
+    readyFigures,
+  )
   assert.equal(await page.locator('#live-bar .vk-figure').getAttribute('data-vk-mode'), 'interactive')
   assert.equal(await page.locator('#static-echarts .vk-figure').getAttribute('data-vk-mode'), 'static')
   checks.push('六个静态引擎与柱/线/饼交互图真实挂载')

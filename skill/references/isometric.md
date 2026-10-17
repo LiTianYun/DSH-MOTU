@@ -1,6 +1,6 @@
 # 等距展示
 
-等距剖面、体素方块、展示柜式空间图 —— 要表现结构关系、层次与"切开看内部"时用它
+等距剖面 —— 要转动、缩放、切开看内部，或同一结构要反复改角度改配色时用它（一次性插图手写 SVG 更灵活）
 
 - 栅栏：```isometric / ```isometric-interactive
 - 引擎：内置于插件（无第三方引擎，投影在本地计算）
@@ -8,7 +8,7 @@
 
 ## 语法
 
-JSON：{ "kind": "solid", "objects": [{ "type": "shell", "r": 1.3, "thickness": 0.16, "color": "amber" }] } 或 { "kind": "voxel", "grid": 17, "palette": { "#": "amber" }, "shapes": [{ "shape": "shell", "r": 7, "thickness": 1.6, "fill": "#" }] }；颜色用语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb
+JSON：{ "kind": "solid", "objects": [{ "type": "shell", "r": 1.3, "thickness": 0.16, "color": "amber" }] }；颜色用语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb
 
 ## 易错点
 

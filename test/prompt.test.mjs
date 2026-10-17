@@ -12,7 +12,7 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
-import { promptText } from '../lib/index.js'
+import { PROMPT_BUDGET, promptText } from '../lib/index.js'
 import { enabledRenderers, renderers } from '../lib/renderers/manifest.js'
 
 /** A synthetic roster of `count` renderers, as if many styles had been added. */
@@ -29,10 +29,10 @@ function roster(count) {
 
 it('提示段随风格数增长但有上限', () => {
   const sizes = [6, 10, 20, 30].map((count) => promptText({}, roster(count)).length)
-  for (const size of sizes) assert.ok(size <= 900, `提示段不得超过预算，实测 ${size}`)
+  for (const size of sizes) assert.ok(size <= PROMPT_BUDGET, `提示段不得超过预算，实测 ${size}`)
   // 单调但不失控：20 个风格时仍应在预算内
   assert.ok(sizes[3] >= sizes[0], '风格变多不应让提示段变短')
-  assert.ok(sizes[3] <= 900, `30 个风格时仍应封顶，实测 ${sizes[3]}`)
+  assert.ok(sizes[3] <= PROMPT_BUDGET, `30 个风格时仍应封顶，实测 ${sizes[3]}`)
 })
 
 it('超出预算时点名去技能参考页，而不是静默丢弃', () => {
@@ -61,4 +61,22 @@ it('提示段里不再按渲染器 id 分支', async () => {
   const start = source.indexOf('export function promptText')
   const body = source.slice(start, source.indexOf('\n}', start))
   assert.ok(!/spec\.id\s*===/.test(body), 'promptText 不应按 id 判断')
+})
+
+it('预算在任何规模下都是硬顶，不靠"预留"糊过去', () => {
+  // 之前靠"预留溢出提示的字符"来守预算，但在已经不够的预算里再减等于没留：
+  // 30 个渲染器时超出 37 字符。现在末尾有一次硬裁切，这条钉住它。
+  for (const count of [8, 20, 30, 60, 120, 300]) {
+    const size = promptText({}, roster(count)).length
+    assert.ok(size <= PROMPT_BUDGET, `${count} 个渲染器时超出预算：${size} > ${PROMPT_BUDGET}`)
+  }
+  // 裁切到极限也要留下可用的选型行，不能裁成空的
+  assert.match(promptText({}, roster(300)), /选型：\S/)
+})
+
+it('放不下的补句必须点名，不静默丢弃', () => {
+  // svg 的结构与排版规范被静默挤掉过一次，代价是产出非法 SVG
+  const text = promptText({}, roster(300))
+  assert.match(text, /的写法要点见技能参考页/, '被挤掉的补句要点名')
+  assert.match(text, /其余（[^）]+）见技能参考页/, '被挤掉的选型条目也要点名')
 })

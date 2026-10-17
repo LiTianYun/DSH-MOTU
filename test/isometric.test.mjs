@@ -1,9 +1,11 @@
 /**
- * isometric 渲染器。
+ * 等距展示与体素模型两个渲染器。
  *
- * 它是"扩展位"的第一个消费者，所以这里同时钉两件事：
- *   1. 渲染器自己的契约（两种 kind、取景、剖面、确定性、错误文案）；
- *   2. 扩展位真的够用 —— 断言产物合法 XML、取景不越界、限额可操作。
+ * 它们共用一套投影引擎（客户端半的 isoAdapter 按 kind 参数化），但形态、spec
+ * 词汇与适用场景不同，所以是两个条目。这里同时钉三件事：
+ *   1. 两种形态各自的契约（取景、剖面、确定性、错误文案、限额）；
+ *   2. **共用一个引擎**这件事本身：两条栅栏走同一条管线，交叉使用要被点名；
+ *   3. 扩展位够用 —— 产物合法 XML、取景不越界、限额可操作。
  */
 
 import assert from 'node:assert/strict'
@@ -13,7 +15,8 @@ import { it } from 'node:test'
 import { setupDom } from '../scripts/dom-env.mjs'
 import { renderers } from '../lib/renderers/manifest.js'
 
-const spec = renderers.find((item) => item.id === 'isometric')
+const solidSpec = renderers.find((item) => item.id === 'isometric')
+const voxelSpec = renderers.find((item) => item.id === 'voxel')
 
 function loadClient(t, theme = 'light') {
   const dom = setupDom({ scripts: true })
@@ -38,7 +41,7 @@ function env(client, overrides = {}) {
     presentation: { fontFamily: 'system-ui, "Segoe UI", sans-serif', fontSize: 13 },
     settings: {},
     behaviour: {},
-    limits: spec.limits,
+    limits: solidSpec.limits,
     nextId: () => 'iso-test',
     ...overrides,
   }
@@ -70,8 +73,10 @@ function bbox(dom, markup) {
   return { viewBox, minX, minY, maxX, maxY }
 }
 
+const countPaths = (markup) => (markup.match(/<path /g) ?? []).length
+
+// kind 由栅栏决定，spec 里不必再写；两种形态都按这个约定写测试
 const SOLID = JSON.stringify({
-  kind: 'solid',
   title: '测试场景',
   desc: '说明',
   case: 2.2,
@@ -85,7 +90,6 @@ const SOLID = JSON.stringify({
 })
 
 const VOXEL = JSON.stringify({
-  kind: 'voxel',
   grid: 12,
   cut: true,
   title: '体素场景',
@@ -99,10 +103,14 @@ const VOXEL = JSON.stringify({
   legend: [{ color: 'amber', text: '壳' }],
 })
 
-it('两种 kind 都能产出合法 XML 的图，且取景不越界', async (t) => {
+/** 两个条目各渲染自己的形态。 */
+const renderSolid = (client, source, overrides) => client.internals.ADAPTERS.isometric.render(source, env(client, overrides))
+const renderVoxel = (client, source, overrides) => client.internals.ADAPTERS.voxel.render(source, env(client, overrides))
+
+it('两种形态都能产出合法 XML 的图，且取景不越界', async (t) => {
   const { dom, client } = loadClient(t)
-  for (const [label, source] of [['solid', SOLID], ['voxel', VOXEL]]) {
-    const { markup } = await client.internals.ADAPTERS.isometric.render(source, env(client))
+  for (const [label, source, render] of [['剖面', SOLID, renderSolid], ['体素', VOXEL, renderVoxel]]) {
+    const { markup } = await render(client, source)
     assert.ok(markup.startsWith('<svg'), `${label} 应产出 SVG`)
     assert.equal(xmlProblem(dom, markup), '', `${label} 产物必须是合法 XML`)
     assert.match(markup, /<title>/, `${label} 必须带 title`)
@@ -116,31 +124,30 @@ it('两种 kind 都能产出合法 XML 的图，且取景不越界', async (t) =
 
 it('同一份 spec 两次渲染逐字节相同（确定性）', async (t) => {
   const { client } = loadClient(t)
-  const first = await client.internals.ADAPTERS.isometric.render(SOLID, env(client))
-  const second = await client.internals.ADAPTERS.isometric.render(SOLID, env(client))
-  assert.equal(first.markup, second.markup, '含随机塌陷的场景也必须可复现')
-  const voxelFirst = await client.internals.ADAPTERS.isometric.render(VOXEL, env(client))
-  const voxelSecond = await client.internals.ADAPTERS.isometric.render(VOXEL, env(client))
+  const solidFirst = await renderSolid(client, SOLID)
+  const solidSecond = await renderSolid(client, SOLID)
+  assert.equal(solidFirst.markup, solidSecond.markup, '含随机塌陷的场景也必须可复现')
+  const voxelFirst = await renderVoxel(client, VOXEL)
+  const voxelSecond = await renderVoxel(client, VOXEL)
   assert.equal(voxelFirst.markup, voxelSecond.markup)
 })
 
-it('剖面确实去掉一部分，且两种 kind 语义一致', async (t) => {
+it('剖面确实去掉一部分，且两种形态语义一致', async (t) => {
   const { client } = loadClient(t)
-  const cut = await client.internals.ADAPTERS.isometric.render(SOLID, env(client))
-  const whole = await client.internals.ADAPTERS.isometric.render(JSON.stringify({ ...JSON.parse(SOLID), cut: null }), env(client))
-  const count = (markup) => (markup.match(/<path /g) ?? []).length
-  assert.ok(count(cut.markup) < count(whole.markup), '剖切后路径数应减少')
+  const cut = await renderSolid(client, SOLID)
+  const whole = await renderSolid(client, JSON.stringify({ ...JSON.parse(SOLID), cut: null }))
+  assert.ok(countPaths(cut.markup) < countPaths(whole.markup), '剖切后路径数应减少')
 
-  const voxelCut = await client.internals.ADAPTERS.isometric.render(VOXEL, env(client))
-  const voxelWhole = await client.internals.ADAPTERS.isometric.render(JSON.stringify({ ...JSON.parse(VOXEL), cut: false }), env(client))
-  assert.ok(count(voxelCut.markup) < count(voxelWhole.markup), '体素剖切同样应减少路径')
+  const voxelCut = await renderVoxel(client, VOXEL)
+  const voxelWhole = await renderVoxel(client, JSON.stringify({ ...JSON.parse(VOXEL), cut: false }))
+  assert.ok(countPaths(voxelCut.markup) < countPaths(voxelWhole.markup), '体素剖切同样应减少路径')
 })
 
 it('浅深主题取色不同', async (t) => {
   const light = loadClient(t, 'light')
-  const lightOut = await light.client.internals.ADAPTERS.isometric.render(SOLID, env(light.client))
+  const lightOut = await renderSolid(light.client, SOLID)
   const dark = loadClient(t, 'dark')
-  const darkOut = await dark.client.internals.ADAPTERS.isometric.render(SOLID, env(dark.client))
+  const darkOut = await renderSolid(dark.client, SOLID)
   assert.notEqual(lightOut.markup, darkOut.markup, '深色主题应产出不同的取色')
   assert.match(lightOut.markup, /fill="#FFFFFF"/, '浅色画布底')
   assert.match(darkOut.markup, /fill="#1E1E1C"/, '深色画布底')
@@ -148,54 +155,90 @@ it('浅深主题取色不同', async (t) => {
 
 it('错误信息点名问题并给出可用值', async (t) => {
   const { client } = loadClient(t)
-  const render = (value) => client.internals.ADAPTERS.isometric.render(JSON.stringify(value), env(client))
-  await assert.rejects(() => render({ kind: '球体' }), /kind 未知.*solid \/ voxel/s)
-  await assert.rejects(() => render({ kind: 'solid', objects: [] }), /objects 必须是非空数组/)
-  await assert.rejects(() => render({ kind: 'solid', objects: [{ type: '金字塔' }] }), /type 未知.*box \/ ball \/ shell \/ cylinder \/ ring/s)
-  await assert.rejects(() => render({ kind: 'solid', objects: [{ type: 'ball', r: '大' }] }), /r 必须是数字/)
-  await assert.rejects(() => render({ kind: 'solid', objects: [{ type: 'box', size: [1, 1], color: 'blue' }] }), /size 必须是 \[x, y, z\]/)
-  await assert.rejects(() => render({ kind: 'solid', objects: [{ type: 'ball', r: 1, color: 'chartreuse' }] }), /未知颜色：chartreuse/)
-  await assert.rejects(() => render({ kind: 'voxel', grid: 12, palette: { '#': 'amber' } }), /需要 shapes 或 layers/)
-  await assert.rejects(() => render({ kind: 'voxel', grid: 12, palette: { '#': 'amber' }, layers: ['#'], shapes: [] }), /二选一/)
-  await assert.rejects(() => render({ kind: 'voxel', grid: 12, palette: { '#': 'amber' }, layers: ['x'] }), /未声明的字符/)
-  await assert.rejects(() => render({ kind: 'voxel', grid: 12, palette: { ab: 'amber' }, shapes: [{ shape: 'ball', r: 1, fill: 'a' }] }), /必须是单个字符/)
+  const solid = (value) => renderSolid(client, JSON.stringify(value))
+  await assert.rejects(() => solid({ objects: [] }), /objects 必须是非空数组/)
+  await assert.rejects(() => solid({ objects: [{ type: '金字塔' }] }), /type 未知.*box \/ ball \/ shell \/ cylinder \/ ring/s)
+  await assert.rejects(() => solid({ objects: [{ type: 'ball', r: '大' }] }), /r 必须是数字/)
+  await assert.rejects(() => solid({ objects: [{ type: 'box', size: [1, 1], color: 'blue' }] }), /size 必须是 \[x, y, z\]/)
+  await assert.rejects(() => solid({ objects: [{ type: 'ball', r: 1, color: 'chartreuse' }] }), /未知颜色：chartreuse/)
+
+  const voxel = (value) => renderVoxel(client, JSON.stringify(value))
+  await assert.rejects(() => voxel({ grid: 12, palette: { '#': 'amber' } }), /需要 shapes 或 layers/)
+  await assert.rejects(() => voxel({ grid: 12, palette: { '#': 'amber' }, layers: ['#'], shapes: [] }), /二选一/)
+  await assert.rejects(() => voxel({ grid: 12, palette: { '#': 'amber' }, layers: ['x'] }), /未声明的字符/)
+  await assert.rejects(() => voxel({ grid: 12, palette: { ab: 'amber' }, shapes: [{ shape: 'ball', r: 1, fill: 'a' }] }), /必须是单个字符/)
+})
+
+it('两条栅栏共用一个引擎：交叉使用被点名，而不是掉进构建器的内部错误', async (t) => {
+  const { client } = loadClient(t)
+
+  // 块与 spec 写法对不上：要说出"这块画什么、你写的是哪块的写法"
+  await assert.rejects(() => renderVoxel(client, SOLID), /画体素.*objects.*isometric/s)
+  await assert.rejects(
+    () => renderSolid(client, JSON.stringify({ shapes: [{ shape: 'ball', r: 2 }] })),
+    /画等距剖面.*shapes\/layers.*voxel/s,
+  )
+  // 显式声明了相反的 kind：也要点名
+  await assert.rejects(
+    () => renderVoxel(client, JSON.stringify({ kind: 'solid', objects: [] })),
+    /画的是 voxel.*kind.*solid/s,
+  )
+  // 声明了正确的 kind 则照常通过（向后兼容旧写法）
+  const ok = await renderVoxel(client, JSON.stringify({ ...JSON.parse(VOXEL), kind: 'voxel' }))
+  assert.ok(ok.markup.startsWith('<svg'), '声明一致的 kind 应当被接受')
 })
 
 it('限额：网格与面数超限时给出可操作建议', async (t) => {
   const { client } = loadClient(t)
-  const render = (value, limits) => client.internals.ADAPTERS.isometric.render(JSON.stringify(value), env(client, { limits }))
   await assert.rejects(
-    () => render({ kind: 'voxel', grid: 40, palette: { '#': 'amber' }, shapes: [{ shape: 'ball', r: 3, fill: '#' }] }),
+    () => renderVoxel(client, JSON.stringify({ grid: 40, palette: { '#': 'amber' }, shapes: [{ shape: 'ball', r: 3, fill: '#' }] })),
     /体素网格边长超过上限 32（当前 40），请调小 grid/s,
   )
   await assert.rejects(
-    () => render({ kind: 'solid', objects: [{ type: 'shell', r: 1.4, thickness: 0.2, segments: 40, rings: 24, color: 'amber' }] }, { faces: 100 }),
+    () => renderSolid(client, JSON.stringify({ objects: [{ type: 'shell', r: 1.4, thickness: 0.2, segments: 40, rings: 24, color: 'amber' }] }), { limits: { ...solidSpec.limits, faces: 100 } }),
     /面数超过上限 100/,
   )
 })
 
+it('产物体积超限时拒绝（声明了 bytes 就要真的执行）', async (t) => {
+  const { client } = loadClient(t)
+  // 上限压到 1 KiB：正常图也应当被拒，且文案给出实际大小
+  await assert.rejects(
+    () => renderSolid(client, SOLID, { limits: { ...solidSpec.limits, bytes: 1024 } }),
+    /产物体积超过上限 1 KiB（当前 \d+ KiB）/,
+  )
+  // 正常上限下应当通过
+  const ok = await renderSolid(client, SOLID)
+  assert.ok(ok.markup.length > 0)
+})
+
 it('spec 过长时拒绝（进入对话的是它，产物是本地生成的）', async (t) => {
   const { client } = loadClient(t)
-  const huge = JSON.stringify({ kind: 'solid', objects: [{ type: 'ball', r: 1, color: 'amber', note: 'x'.repeat(70_000) }] })
-  await assert.rejects(
-    () => client.internals.ADAPTERS.isometric.render(huge, env(client)),
-    /spec 过长.*64 KiB/s,
-  )
+  const huge = JSON.stringify({ objects: [{ type: 'ball', r: 1, color: 'amber', note: 'x'.repeat(70_000) }] })
+  await assert.rejects(() => renderSolid(client, huge), /spec 过长.*64 KiB/s)
 })
 
 it('检测：只在明确声明 kind 时才认领无语言代码块', (t) => {
   const { client } = loadClient(t)
-  const detect = client.internals.ADAPTERS.isometric.detect
-  assert.equal(detect('{ "kind": "solid", "objects": [] }'), true)
-  assert.equal(detect('{ "kind": "voxel", "grid": 8 }'), true)
-  assert.equal(detect('{ "series": [{ "type": "bar" }] }'), false, '不能抢 ECharts 的 JSON')
-  assert.equal(detect('flowchart TD\n A --> B'), false)
+  const { isometric, voxel } = client.internals.ADAPTERS
+  assert.equal(isometric.detect('{ "kind": "solid", "objects": [] }'), true)
+  assert.equal(isometric.detect('{ "kind": "voxel", "grid": 8 }'), false, '体素归 voxel 条目，不抢')
+  assert.equal(voxel.detect('{ "kind": "voxel", "grid": 8 }'), true)
+  assert.equal(voxel.detect('{ "kind": "solid", "objects": [] }'), false)
+  assert.equal(isometric.detect('{ "series": [{ "type": "bar" }] }'), false, '不能抢 ECharts 的 JSON')
+  assert.equal(voxel.detect('flowchart TD\n A --> B'), false)
 })
 
-it('manifest 声明的限额与产物上限一致', () => {
-  assert.ok(spec, 'manifest 应有 isometric 条目')
-  assert.deepEqual(spec.languages, ['isometric', 'isometric-interactive'])
-  assert.equal(spec.assets.length, 0, '自绘渲染器不 vendor 任何引擎')
-  assert.ok(spec.limits.faces > 0 && spec.limits.grid > 0 && spec.limits.bytes > 64 * 1024, '产物上限应大于 spec 上限')
-  assert.ok(spec.modes.some((mode) => mode.id === 'interactive' && mode.setting === 'interactive'), '交互模式要声明开关')
+it('两个条目各自声明栅栏与交互模式，共用同一套限额', () => {
+  assert.ok(solidSpec, 'manifest 应有 isometric 条目')
+  assert.ok(voxelSpec, 'manifest 应有 voxel 条目')
+  assert.deepEqual(solidSpec.languages, ['isometric', 'isometric-interactive'])
+  assert.deepEqual(voxelSpec.languages, ['voxel', 'voxel-interactive'])
+  for (const entry of [solidSpec, voxelSpec]) {
+    assert.equal(entry.assets.length, 0, '自绘渲染器不 vendor 任何引擎')
+    assert.ok(entry.limits.faces > 0 && entry.limits.grid > 0 && entry.limits.bytes > 64 * 1024, '产物上限应大于 spec 上限')
+    assert.ok(entry.modes.some((mode) => mode.id === 'interactive' && mode.setting === 'interactive'), '交互模式要声明开关')
+    assert.equal(entry.family, 'spatial', '两者同属空间与展示')
+  }
+  assert.deepEqual(solidSpec.limits, voxelSpec.limits, '共用引擎就该共用限额')
 })

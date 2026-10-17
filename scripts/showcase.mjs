@@ -209,11 +209,10 @@ const examples = [
   },
   {
     id: 'isometric-voxel',
-    renderer: 'isometric',
+    renderer: 'voxel',
     title: '体素剖面 · 方块化的空间关系',
-    language: 'isometric',
+    language: 'voxel',
     source: `{
-  "kind": "voxel",
   "grid": 18,
   "cut": true,
   "title": "碎空星 · 体素剖面",
