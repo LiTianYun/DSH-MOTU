@@ -18,12 +18,23 @@ import { styleEntry, styleFor, styles } from '../lib/styles.js'
 
 const usable = enabledRenderers({})
 
+/** 最小 React 桩：createElement 返回可断言的普通对象树。 */
+function reactStub() {
+  return {
+    createElement: (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat().filter((child) => child !== null && child !== undefined && child !== false) }),
+    useState: (value) => [value, () => {}],
+    useRef: (value) => ({ current: value }),
+    useEffect: () => {},
+    useCallback: (fn) => fn,
+  }
+}
+
 function loadClient(t, catalogue) {
   const dom = setupDom({ scripts: true })
   let client
   dom.window.__ModuleLoader__ = {
     load({ factory }) {
-      client = factory(() => { throw new Error('no react needed') })
+      client = factory(reactStub)
     },
   }
   dom.window.eval(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'))
@@ -151,4 +162,36 @@ it('技能正文带上当前风格的完整指引', () => {
   const style = styles.find((item) => item.id === 'blueprint')
   assert.ok(skill.includes(`当前视觉风格：${style.label}`), '技能要说明当前风格')
   assert.ok(skill.includes(style.guidance), '技能要带上该风格的完整令牌与线型')
+})
+
+it('风格预览：用该风格自己的令牌、圆角与线宽画出节点与连线', (t) => {
+  const { client } = loadClient(t)
+  const preview = client.internals.stylePreview
+  assert.equal(typeof preview, 'function', '预览组件应导出以便单测')
+
+  for (const style of styles) {
+    const tree = preview(styleEntry(style, style.id))
+    assert.equal(tree.type, 'svg', `${style.id} 预览应是 svg`)
+    const kinds = tree.children.map((child) => child.type)
+    assert.ok(kinds.includes('rect'), `${style.id} 预览应含节点卡`)
+    assert.ok(kinds.includes('path'), `${style.id} 预览应含连线`)
+
+    const rects = tree.children.filter((child) => child.type === 'rect')
+    for (const rect of rects) {
+      assert.equal(rect.props.rx, style.shape.cardRadius, `${style.id} 预览圆角应取该风格`)
+      assert.equal(rect.props.strokeWidth, style.shape.hairline, `${style.id} 预览边框应取该风格`)
+      assert.equal(rect.props.stroke, style.chrome.light.nodeBorder, `${style.id} 预览边框色应取该风格`)
+    }
+    const edge = tree.children.find((child) => child.type === 'path')
+    assert.equal(edge.props.strokeWidth, style.shape.edgeWidth, `${style.id} 预览线宽应取该风格`)
+    if (style.shape.edge === 'orthogonal') {
+      assert.match(edge.props.d, /V/, `${style.id} 正交风格应画出折点`)
+      assert.equal(edge.props.markerEnd, undefined, '正交风格不带箭头标记')
+    } else {
+      assert.ok(!/V/.test(edge.props.d), `${style.id} 开放箭头风格不应有折点`)
+      assert.ok(String(edge.props.markerEnd ?? '').startsWith('url(#'), '开放箭头风格应挂箭头标记')
+      assert.ok(tree.children.some((child) => child.type === 'defs'), '开放箭头风格需要 defs 定义箭头')
+    }
+    assert.equal(tree.props.style.background, style.surface.light, `${style.id} 预览底色应取该风格`)
+  }
 })
