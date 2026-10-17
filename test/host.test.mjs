@@ -279,6 +279,96 @@ describe('配置写入（设置页开关的数据通道）', () => {
     assert.ok(!promptText(off, enabledRenderers(off)).includes('```svg'))
   })
 
+  it('手写优先先声明默认画法，技能摘要与正文不再把用户引回 Mermaid', () => {
+    const sections = [], skills = []
+    const config = { agent: { svgPreference: 80 } }
+    const ctx = {
+      webServer: { register: () => () => {} },
+      get: key => key === 'systemPrompt' ? { section: value => { sections.push(value); return () => {} } }
+        : key === 'skills' ? { register: value => { skills.push(value); return () => {} } } : undefined,
+    }
+    const dispose = apply(ctx, config)
+    try {
+      assert.match(sections[0].text, /流程、架构[^。]*默认[^。]*```svg/)
+      assert.ok(sections[0].text.indexOf('手写 SVG 优先') < sections[0].text.indexOf('```mermaid'), '模式规则必须先于备选引擎清单')
+      assert.match(skills[0].description, /手写 SVG 优先/, '未加载技能正文时也应能看到当前模式')
+      assert.match(skills[0].whenToUse, /手写 SVG 优先/)
+      const table = skills[0].content.split('## 选型')[1].split('## 语法要点')[0]
+      assert.ok(table.indexOf('| SVG 图示（手写） |') < table.indexOf('| Mermaid 图表 |'), '默认画法排在备选能力之前')
+      assert.match(table, /默认[^\n]*SVG/)
+      assert.ok(!skills[0].content.includes('拿不准时用它'))
+      assert.ok(!skills[0].content.includes('优先选够用的最小语法'))
+      assert.match(skills[0].content, /不得仅为省 token 改换画法/)
+      assert.match(sections[0].text, /用户明确指定的画法优先/)
+      assert.match(sections[0].text, /交互|统计/)
+    } finally { dispose() }
+  })
+
+  it('仅启用技能时仍能看到手写模式，渲染器关闭后不再宣传该模式', () => {
+    for (const config of [
+      { agent: { promptSection: false, svgPreference: 80 } },
+      { agent: { promptSection: false, svgPreference: 80 }, renderers: { svg: { enabled: false } } },
+      { agent: { svgPreference: 20 } },
+    ]) {
+      const sections = [], skills = []
+      const dispose = apply({
+        webServer: { register: () => () => {} },
+        get: key => key === 'systemPrompt' ? { section: value => { sections.push(value); return () => {} } }
+          : key === 'skills' ? { register: value => { skills.push(value); return () => {} } } : undefined,
+      }, config)
+      try {
+        assert.equal(sections.length, config.agent.promptSection === false ? 0 : 1)
+        if (config.renderers?.svg?.enabled === false) {
+          assert.ok(!skills[0].description.includes('SVG'))
+          assert.ok(!skills[0].content.includes('```svg'))
+        } else {
+          const expected = config.agent.svgPreference > 66 ? /手写 SVG 优先/ : /常规引擎优先/
+          assert.match(skills[0].description, expected)
+          assert.match(skills[0].content, expected)
+        }
+      } finally { dispose() }
+    }
+  })
+
+  it('通过设置路由切换三档后，实际注册的提示和技能一起替换，旧注册被释放', async () => {
+    const routes = new Map(), sections = new Set(), skills = new Set()
+    let current = Config({}), dispose
+    const ctx = {
+      webServer: { register(route) {
+        const key = `${route.kind}:${route.path}`
+        assert.ok(!routes.has(key))
+        routes.set(key, route)
+        return () => routes.delete(key)
+      } },
+      get: key => key === 'systemPrompt' ? { section: value => { sections.add(value); return () => sections.delete(value) } }
+        : key === 'skills' ? { register: value => { skills.add(value); return () => skills.delete(value) } }
+          : key === 'configEditor' ? {
+            entries: () => [{ name: 'dsh-visual-kit' }],
+            async edit(_entry, change) { current = Config(change(current)); dispose(); dispose = apply(ctx, current) },
+          } : undefined,
+    }
+    dispose = apply(ctx, current)
+    try {
+      for (const [value, label] of [[80, '手写 SVG 优先'], [20, '常规引擎优先'], [50, '按任务均衡选择']]) {
+        const oldSection = [...sections][0], oldSkill = [...skills][0]
+        const result = await call(routes, 'POST', '/dsh-visual-kit/config', { body: JSON.stringify({ agent: { svgPreference: value } }) })
+        assert.equal(result.status, 200)
+        assert.equal(sections.size, 1)
+        assert.equal(skills.size, 1)
+        assert.ok(!sections.has(oldSection) && !skills.has(oldSkill))
+        const snapshot = JSON.parse((await call(routes, 'GET', '/dsh-visual-kit/config')).body).value
+        assert.equal(snapshot.settings.svgPreference, value)
+        assert.equal([...sections][0].text, snapshot.prompt)
+        assert.ok([...sections][0].text.includes(label))
+        assert.ok([...skills][0].description.includes(label))
+        assert.ok([...skills][0].content.includes(label))
+      }
+    } finally { dispose() }
+    assert.equal(sections.size, 0)
+    assert.equal(skills.size, 0)
+    assert.equal(routes.size, 0)
+  })
+
   it('白名单只放行 schema 声明的字段与类型', () => {
     const clean = sanitizeConfigPatch({
       behavior: { autoRender: false, 不存在的字段: 1, debounceMs: '不是数字' },

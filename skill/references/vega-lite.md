@@ -10,6 +10,11 @@
 
 Vega-Lite v6 JSON：{ "$schema": "…/v6.json", "data": { "values": [...] }, "mark": "bar", "encoding": { … } }；叠加用 "layer": [ … ]
 
+## 易错点
+
+- 必须有 `mark` 与 `data`；字段引用写在 `encoding.x.field`。
+- 这是 Vega-Lite，不是 Vega：不要写 `signals` / `marks` 这类运行时语法；叠加用 `layer`。
+
 ## 完整示例
 
 ```vega-lite

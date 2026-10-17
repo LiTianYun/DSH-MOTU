@@ -10,6 +10,12 @@
 
 digraph G { rankdir=LR; A -> B; }；中文标签必须写 fontname="Microsoft YaHei"，分层用 subgraph cluster_x { label="…" }
 
+## 易错点
+
+- 属性写成 `key="value"`；含空格或标点的标签必须加引号（`label="含 空格"`）。
+- 节点名不要用 `graph` / `node` / `edge` 这些保留字。
+- 每条语句以 `;` 结尾，整个图包在一对花括号里。
+
 ## 完整示例
 
 ```dot

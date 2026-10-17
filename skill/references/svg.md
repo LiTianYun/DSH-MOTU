@@ -10,6 +10,10 @@
 
 直接写 <svg viewBox="0 0 680 XXX" width="100%" role="img">…</svg>；必须带 <title> 与 <desc>；圆角 rx=8、边框 0.5px、暖中性配色（见参考页）
 
+## 易错点
+
+- 手写 SVG 没有语法可错，但必须带 `<title>` 与 `<desc>`；`viewBox` 用 `0 0 680 高`（高 ≤ 400），否则会被画布裁切。
+
 ## 完整示例
 
 ```svg

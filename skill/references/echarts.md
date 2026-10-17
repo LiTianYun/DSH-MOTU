@@ -10,6 +10,10 @@
 
 JSON 配置：{ "xAxis": { "type": "category", "data": [...] }, "series": [{ "type": "bar", "data": [...] }] }；饼图用 "type": "pie"
 
+## 易错点
+
+- JSON 里不能有注释或尾随逗号；`series` 每项必须带 `type`，数据放在 `series.data`。
+
 ## 完整示例
 
 ```echarts

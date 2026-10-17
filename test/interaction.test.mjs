@@ -267,6 +267,29 @@ it('设置加载失败显示可操作的重试按钮', async (t) => {
   assert.ok(walk(tree).some(e => e.type === 'button' && e.children.includes('重新读取')))
 })
 
+it('Mermaid 语法错误提示点名旗形节点的括号配对', async (t) => {
+  // 真实失败现场：把方括号塞进了左开口的旗形（web>["文字"]），整张图变成
+  // Parse error。卡片必须直接说出这一条，而不是只复述解析器的行号。
+  const { api, block } = load(t)
+  const node = block()
+  api.showError(node, 'Parse error on line 14:', 'flowchart TB\n  web>["网页 http://x:8080<br/>看状态"]', { renderer: 'mermaid' })
+  const hint = node.nextElementSibling.querySelector('.vk-error-hint')
+  assert.ok(hint, '语法错误必须给出修复提示')
+  assert.ok(hint.textContent.includes('id>["文字"]'), '要点名把方括号塞进旗形这一写法')
+  assert.ok(hint.textContent.includes('id["文字"]'), '要给出正确写法')
+  assert.ok(hint.textContent.includes('A["文字（含括号）"]'), '节点文字加引号的规则不能丢')
+})
+
+it('fixHint 只在语法类错误时给语法提示，其他错误回退到该引擎的一行说明', async (t) => {
+  const { client } = load(t)
+  const { fixHint } = client.internals
+  const mermaid = { id: 'mermaid', syntaxHint: '首行必须是图表类型关键字' }
+  assert.match(fixHint(mermaid, 'Parse error on line 14:'), /旗形/)
+  assert.match(fixHint(mermaid, 'Lexical error on line 2'), /旗形/)
+  assert.equal(fixHint(mermaid, 'engine not loaded'), '首行必须是图表类型关键字')
+  assert.match(fixHint({ id: 'graphviz', syntaxHint: 'dot 说明' }, 'syntax error in line 3'), /引号/)
+})
+
 it('绘图方式点选即保存，兼容旧数值，失败保留原选项并允许重试', async t => {
   const { api, block, client, react, cat, window } = load(t)
   let saved = 77, rejectWrite = false

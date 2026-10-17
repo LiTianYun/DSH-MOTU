@@ -37,6 +37,53 @@ const skillDir = join(root, 'skill')
 const F = '```'
 
 /**
+ * The mistake each engine's grammar trips on most often.
+ *
+ * The browser half's error card suggests the same things (`fixHint` in
+ * `lib/client.js`), so both halves teach one lesson and a repeat failure costs
+ * a glance instead of a round trip. Edit both together.
+ *
+ * @type {Record<string, string[]>}
+ */
+const PITFALLS = {
+  mermaid: [
+    '节点文字含括号、方括号或引号时**整段加引号**：写 `A["文字（含括号）"]`，不要写 `A[文字（含括号）]`。',
+    '形状括号必须成对：`[]` 矩形、`()` 圆角、`[()]` 圆柱、`{}` 菱形。**只有旗形是左开口**的 `id>文字]` —— 把方括号塞进旗形（`id>["文字"]`）会直接 `Parse error`；要方框就写 `id["文字"]`。',
+    '子图标题写成 `subgraph 名称["标题"]`；`end` 必须单独一行。',
+  ],
+  graphviz: [
+    '属性写成 `key="value"`；含空格或标点的标签必须加引号（`label="含 空格"`）。',
+    '节点名不要用 `graph` / `node` / `edge` 这些保留字。',
+    '每条语句以 `;` 结尾，整个图包在一对花括号里。',
+  ],
+  nomnoml: [
+    '框是 `[文字]`、箭头是 `->`；连线标签写在箭头**前**：`[A] 是 -> [B]`。',
+    '没有 `<choice>` 这类语法，尖括号会被当普通文本；判定就画普通方框。',
+    '中文要加 `#padding: 22`，否则按西文字宽估算会溢出。',
+  ],
+  'vega-lite': [
+    '必须有 `mark` 与 `data`；字段引用写在 `encoding.x.field`。',
+    '这是 Vega-Lite，不是 Vega：不要写 `signals` / `marks` 这类运行时语法；叠加用 `layer`。',
+  ],
+  echarts: [
+    'JSON 里不能有注释或尾随逗号；`series` 每项必须带 `type`，数据放在 `series.data`。',
+  ],
+  svg: [
+    '手写 SVG 没有语法可错，但必须带 `<title>` 与 `<desc>`；`viewBox` 用 `0 0 680 高`（高 ≤ 400），否则会被画布裁切。',
+  ],
+}
+
+/**
+ * One-line fallback for a renderer without a pitfalls entry.
+ *
+ * @param {object} spec - the renderer.
+ * @returns {string[]} its pitfall lines.
+ */
+function pitfallsOf(spec) {
+  return PITFALLS[spec.id] ?? [spec.syntaxHint ?? '']
+}
+
+/**
  * Hash a file's bytes.
  *
  * @param {string} path - the file.
@@ -136,6 +183,19 @@ ${selectionRows}
 
 ${renderers.map((spec) => `- **${spec.label}**：${spec.syntaxHint}`).join('\n')}
 
+## 常见语法错误
+
+写之前先排除这几条；它们占已知失败的大多数，且都会让整张图变成错误卡片。
+
+${renderers
+  .map(
+    (spec) =>
+      `- **${spec.label}**\n${pitfallsOf(spec)
+        .map((line) => `  - ${line}`)
+        .join('\n')}`,
+  )
+  .join('\n')}
+
 每个渲染器的完整示例见下方导航。
 
 <!-- ECHARTS_INTERACTIVE:BEGIN -->
@@ -203,6 +263,12 @@ ${spec.usage}
 ## 语法
 
 ${spec.syntaxHint}
+
+## 易错点
+
+${pitfallsOf(spec)
+  .map((line) => `- ${line}`)
+  .join('\n')}
 
 ## 完整示例
 
