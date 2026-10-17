@@ -176,6 +176,41 @@ const navigationRows = renderers
   .join('\n')
 
 /**
+ * The part-recipe table for the isometric reference page.
+ *
+ * A part is a shorthand that expands into primitives, so the model writes one
+ * line instead of placing every plate and foot. Listed here rather than only in
+ * the renderer's syntax hint because the parameters are what make them usable.
+ *
+ * @returns {string} the markdown section.
+ */
+function partSection() {
+  const rows = [
+    ['base', '底座 + 四角支脚，给场景一个落地感', 'size, thickness, footHeight, feet'],
+    ['stack', '分层堆叠：每层一块板，层间留空', 'layers, size, gap, thickness, colors[]'],
+    ['rack', '机架：四柱 + 顶底 + 槽位', 'size, height, slots, post'],
+    ['grid', '阵列：集群 / 机柜排 / 节点网格', 'count[列,行], size, spacing'],
+    ['tower', '塔楼：角柱 + 楼板', 'size, floors, floorHeight, slab, post'],
+    ['dial', '表盘：盘面 + 表圈 + 指针', 'r, height, needle（弧度 0..1）, needleColor'],
+    ['rail', '导轨 + 滑台 + 两端限位', 'length, gauge, rail, carriage, carriageAt(0..1), carriageColor'],
+    ['post', '立柱 + 底座法兰 + 卡箍', 'height, r, clampAt(0..1), clampColor'],
+  ].map(([name, what, params]) => '| `' + name + '` | ' + what + ' | ' + params + ' |').join('\n')
+  return [
+    '## 零件配方',
+    '',
+    '图元是积木，配方是成品件。写 `{ "type": "part", "part": "stack", "layers": 3 }` 比一个个摆板子省得多，也更不容易摆歪。公共参数是 `at`（中心）、`color`、`label`。',
+    '',
+    '| 配方 | 是什么 | 参数 |',
+    '| --- | --- | --- |',
+    rows,
+    '',
+    '`case` 可以是数字（立方体）或 `[宽, 深, 高]`（扁柜子）——宽而矮的场景塞进立方体会浪费大半画幅。',
+    '',
+    '关系检查会跑在配方上：引线必须落在某个配方或图元的包围盒内。**配方内部不做互穿判定**——它的几何是展开出来的，只有包围盒，而按包围盒判互穿会报出并不存在的重叠。',
+    '',
+  ].join('\n')
+}
+/**
  * The pre-flight checklist for a figure.
  *
  * Ported from the Anatomy skill's craft notes, where every entry is traced to a
@@ -343,7 +378,7 @@ ${pitfallsOf(spec)
 ${F}${spec.languages[0]}
 ${spec.sample}
 ${F}
-`,
+` + (spec.id === 'isometric' ? partSection() : ''),
     'utf8',
   )
 }

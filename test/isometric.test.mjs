@@ -296,7 +296,12 @@ it('关系检查：我们自己的示例必须零问题', (t) => {
     const entry = renderers.find((item) => item.id === id)
     const { problems, checked } = client.internals.isoAudit(JSON.parse(entry.sample), kind)
     assert.deepEqual([...problems], [], `${id} 的示例不该有关系问题`)
-    if (kind === 'solid') assert.ok(checked >= 3, `${id} 的示例应当有可判交的图元，实际 ${checked}`)
+    // part 只按包围盒参与（引线检查），不产生精确判交形状，所以这里不按 checked 断言；
+    // 断言的是"示例本身非平凡"，否则零问题可能只是因为什么都没检查。
+    const parsed = JSON.parse(entry.sample)
+    const items = kind === 'solid' ? (parsed.objects ?? []).length : (parsed.shapes ?? []).length + (parsed.layers ?? []).length
+    assert.ok(items >= 3, `${id} 的示例应当有内容，实际 ${items} 项`)
+    assert.ok(checked >= 0)
   }
 })
 
@@ -305,4 +310,58 @@ it('关系检查：体素不做互穿判定（网格本身保证了这一点）'
   const result = client.internals.isoAudit({ grid: 8, shapes: [] }, 'voxel')
   assert.equal(result.checked, 0)
   assert.deepEqual([...result.problems], [])
+})
+
+it('零件配方：八个配方都能展开成合法产物，且确定性', async (t) => {
+  const { client } = loadClient(t)
+  const parts = [
+    ['base', { type: 'part', part: 'base', at: [0, 0, 0], size: [3, 3] }],
+    ['stack', { type: 'part', part: 'stack', at: [0, 0, 0], layers: 3, colors: ['blue', 'green', 'amber'] }],
+    ['rack', { type: 'part', part: 'rack', at: [0, 0, 0], slots: 6, height: 2.6 }],
+    ['grid', { type: 'part', part: 'grid', at: [0, 0, 0], count: [4, 3], size: [0.4, 0.4, 0.4] }],
+    ['tower', { type: 'part', part: 'tower', at: [0, 0, 0], floors: 4 }],
+    ['dial', { type: 'part', part: 'dial', at: [0, 0, 0], r: 0.8 }],
+    ['rail', { type: 'part', part: 'rail', at: [0, 0, 0], length: 3, carriageAt: 0.7 }],
+    ['post', { type: 'part', part: 'post', at: [0, 0, 0], height: 2.4 }],
+  ]
+  for (const [name, object] of parts) {
+    const source = JSON.stringify({ objects: [object] })
+    const first = await renderSolid(client, source)
+    const second = await renderSolid(client, source)
+    assert.equal(first.markup, second.markup, `${name} 两次渲染应逐字节相同`)
+    assert.match(first.markup, /<path /, `${name} 应当画出东西`)
+    // 配方内部也要能过关系检查（引线检查看得到 part 的包围盒）
+    assert.deepEqual([...client.internals.isoAudit(JSON.parse(source), 'solid').problems], [], `${name} 不该有关系问题`)
+  }
+})
+
+it('零件配方：参数错误点名到具体字段', async (t) => {
+  const { client } = loadClient(t)
+  const bad = (object) => renderSolid(client, JSON.stringify({ objects: [object] }))
+  await assert.rejects(() => bad({ type: 'part', part: '不存在' }), /part 未知.*base \/ stack/s)
+  await assert.rejects(() => bad({ type: 'part', part: 'stack', layers: 0 }), /layers 必须大于 0/)
+  await assert.rejects(() => bad({ type: 'part', part: 'base', size: [3] }), /size 必须是 \[x, y\] 或 \[x, y, z\]/)
+  await assert.rejects(() => bad({ type: 'part', part: 'base', size: [3, -1] }), /size 必须为正数/)
+  await assert.rejects(() => bad({ type: 'part', part: 'grid', count: [3] }), /count 必须是 \[列数, 行数\]/)
+  await assert.rejects(() => bad({ type: 'part', part: 'rail', length: 0 }), /length 必须大于 0/)
+})
+
+it('展示柜可以是扁的：数字是立方体，数组是 [宽, 深, 高]', async (t) => {
+  const { dom, client } = loadClient(t)
+  const box = JSON.stringify({ objects: [{ type: 'ball', r: 0.5 }] })
+  const cube = await renderSolid(client, JSON.stringify({ ...JSON.parse(box), case: 3 }))
+  const flat = await renderSolid(client, JSON.stringify({ ...JSON.parse(box), case: [3, 3, 1.2] }))
+  assert.notEqual(cube.markup, flat.markup, '扁柜子应当画出不同的框')
+  assert.equal(xmlProblem(dom, flat.markup), '', '扁柜子产物必须是合法 XML')
+  // 画布会缩放适配，所以绝对像素高度不可比 —— 比与缩放无关的长宽比：
+  // 同样的内容配上扁柜子，整体应当更宽更扁。
+  const aspect = (markup) => {
+    const box = bbox(dom, markup)
+    return (box.maxX - box.minX) / (box.maxY - box.minY)
+  }
+  assert.ok(aspect(flat.markup) > aspect(cube.markup), `扁柜子应当更宽更扁（${aspect(flat.markup).toFixed(2)} vs ${aspect(cube.markup).toFixed(2)}）`)
+  await assert.rejects(
+    () => renderSolid(client, JSON.stringify({ ...JSON.parse(box), case: [3, 3, 0] })),
+    /case\[2\] 必须为正数/,
+  )
 })

@@ -77,6 +77,23 @@
   ] }
 ```
 
+**零件配方**：图元是积木，配方是成品件。写一行 `{ "type": "part", "part": "stack", "layers": 3 }` 比一个个摆板子省得多，也更不容易摆歪。
+
+| 配方 | 是什么 | 参数 |
+| --- | --- | --- |
+| `base` | 底座 + 四角支脚 | size, thickness, footHeight, feet |
+| `stack` | 分层堆叠（分层架构图的主力） | layers, size, gap, thickness, colors[] |
+| `rack` | 机架：四柱 + 顶底 + 槽位 | size, height, slots, post |
+| `grid` | 阵列：集群 / 机柜排 / 节点网格 | count[列,行], size, spacing |
+| `tower` | 塔楼：角柱 + 楼板 | size, floors, floorHeight, slab |
+| `dial` | 表盘：盘面 + 表圈 + 指针 | r, height, needle(0..1), needleColor |
+| `rail` | 导轨 + 滑台 + 两端限位 | length, gauge, carriageAt(0..1), carriageColor |
+| `post` | 立柱 + 底座法兰 + 卡箍 | height, r, clampAt(0..1), clampColor |
+
+![零件配方：分层部署](preview/showcase/isometric-parts.svg)
+
+`case` 是展示柜：数字表示**半边长**（立方体），`[宽, 深, 高]` 表示全尺寸（扁柜子——宽而矮的场景塞进立方体会浪费大半画幅）。
+
 **什么时候不该用它**：一次性的空间插图，手写 ` ```svg ` 更灵活（引擎只能画它图元允许的东西）。引擎的价值在**要交互**、或同一张图**会反复改角度改配色**时 —— 那时手写每次都要重付约 1.3 万字符，引擎是 0。
 
 ### 体素模型 · ` ```voxel `

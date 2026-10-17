@@ -22,7 +22,7 @@
 - **nomnoml**：[A] -> [B]；边标签写在端点和箭头之间：[A] 是 -> [B]；决策就是普通方框 [命中]，不要写 <choice>（尖括号会被当文本渲染）；中文必须加 #padding: 22 补偿它按西文字宽估算
 - **ECharts**：JSON 配置：{ "xAxis": { "type": "category", "data": [...] }, "series": [{ "type": "bar", "data": [...] }] }；饼图用 "type": "pie"
 - **Vega-Lite**：Vega-Lite v6 JSON：{ "$schema": "…/v6.json", "data": { "values": [...] }, "mark": "bar", "encoding": { … } }；叠加用 "layer": [ … ]
-- **等距展示**：JSON：{ "kind": "solid", "objects": [{ "type": "shell", "r": 1.3, "thickness": 0.16, "color": "amber" }] }；颜色用语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb
+- **等距展示**：JSON：{ "objects": [{ "type": "shell", "r": 1.3, "thickness": 0.16, "color": "amber" }] }；图元 box/ball/shell/cylinder/ring，或直接用零件配方 { "type": "part", "part": "stack", "layers": 3 }（base/stack/rack/grid/tower/dial/rail/post）；颜色用语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb
 - **体素模型**：JSON：{ "grid": 17, "palette": { "#": "amber", "o": "purple" }, "shapes": [{ "shape": "shell", "r": 7, "thickness": 1.6, "fill": "#" }] }；shapes 可用 shell/ball/box/cluster/collapse，或直接写 "layers": ["#####\n#...#"]（每层一段，z 从下往上）；颜色用语义令牌或 #rrggbb
 - **SVG 图示（手写）**：直接写 <svg viewBox="0 0 680 XXX" width="100%" role="img">…</svg>；必须带 <title> 与 <desc>；整图构图、排版、配色与标注遵循当前视觉风格，参考页示例不覆盖该选择
 

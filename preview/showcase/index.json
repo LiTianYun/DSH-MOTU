@@ -48,6 +48,12 @@
     "size": "680×430"
   },
   {
+    "id": "isometric-parts",
+    "renderer": "isometric",
+    "title": "零件配方 · 分层部署",
+    "size": "680×430"
+  },
+  {
     "id": "isometric-voxel",
     "renderer": "voxel",
     "title": "体素剖面 · 方块化的空间关系",
