@@ -215,3 +215,33 @@ it('简洁风规范覆盖整图，电气配色不强加给其他主题，公共 
   assert.ok(!body.includes(styles[0].guidance), '运行时不应同时给出另一个风格的完整规范')
   assert.equal(body.split(styles.find(style => style.id === 'blueprint').guidance).length, 2, '当前完整规范只注入一次')
 })
+
+it('目录下发成本，设置页把它渲染成两行数字', (t) => {
+  const { client } = loadClient(t)
+  const catalogue = catalogueFor('motu')
+  // 目录里的每个渲染器都要有 cost（宿主算好，客户端只显示）
+  for (const spec of catalogue.renderers) {
+    assert.ok(spec.cost === undefined || typeof spec.cost === 'object', '目录条目可选带 cost')
+  }
+  const line = client.internals.costLine
+  assert.equal(typeof line, 'function', 'costLine 应导出以便单测')
+  assert.equal(line(undefined), null, '没有成本数据时不渲染')
+
+  const tree = line({ figureTokens: 3514, figureChars: 13000, standingTokens: 55, standingChars: 108, figureBasis: '典型插图' })
+  const texts = []
+  const walk = (node) => {
+    if (node === null || typeof node !== 'object') return
+    if (typeof node.children !== 'undefined') for (const child of node.children) {
+      if (typeof child === 'string') texts.push(child)
+      else walk(child)
+    }
+  }
+  walk(tree)
+  const joined = texts.join('')
+  assert.ok(joined.includes('3514'), '每图 token 要显示出来')
+  assert.ok(joined.includes('55'), '常驻 token 要显示出来')
+  assert.ok(joined.includes('典型插图'), '要说明每图数字的依据')
+  // 估算口径必须能查到，否则数字不可核
+  assert.ok(String(tree.props.title).includes('1.5 字符/token'), '提示里要写明估算口径')
+  assert.ok(String(tree.props.title).includes('13000'), '提示里要给出精确字符数')
+})

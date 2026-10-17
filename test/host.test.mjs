@@ -48,7 +48,23 @@ describe('交互模式配置与能力声明', () => {
     const harness = mount({ renderers: { echarts: { interactive: false } } })
     try {
       const result = await call(harness.routes, 'GET', '/dsh-visual-kit/renderers.json')
-      const spec = JSON.parse(result.body).renderers.find(spec => spec.id === 'echarts')
+      const catalogue = JSON.parse(result.body)
+      const spec = catalogue.renderers.find(spec => spec.id === 'echarts')
+      // 设置页的 token 预估靠这条：真目录必须带上每个渲染器的成本
+      for (const entry of catalogue.renderers) {
+        assert.ok(entry.cost !== undefined, `${entry.id} 的目录条目应当带 cost`)
+        assert.ok(entry.cost.standingTokens > 0 && entry.cost.figureTokens > 0, `${entry.id} 的两项成本都要有`)
+        assert.ok(entry.cost.figureChars > 0 && typeof entry.cost.figureBasis === 'string', `${entry.id} 要给出字符数与依据`)
+      }
+      // 关掉交互后，常驻成本应当变小（补句随开关消失）
+      const full = mount({})
+      try {
+        const before = JSON.parse((await call(full.routes, 'GET', '/dsh-visual-kit/renderers.json')).body)
+          .renderers.find(entry => entry.id === 'echarts').cost
+        assert.ok(before.standingChars > spec.cost.standingChars, '交互关掉后常驻字符数应当减少')
+      } finally {
+        full.dispose()
+      }
       assert.equal(spec.output, 'svg')
       assert.ok(spec.languages.includes('echarts-interactive'))
       assert.equal(spec.modes.find(mode => mode.id === 'interactive').enabled, false)
@@ -706,4 +722,39 @@ it('版本锁步：宿主 rev 与 CLIENT_REV 一致，且都以 package.json 版
       `${name} 必须是 ${exact} 或以 ${exact}- 开头的构建后缀，当前是 ${value}`,
     )
   }
+})
+
+it('成本估算：每个渲染器都下发常驻与每图两项，且口径可查', async () => {
+  const { estimateTokens, rendererCost } = await import('../lib/index.js')
+  const { enabledRenderers } = await import('../lib/renderers/manifest.js')
+  const list = enabledRenderers({})
+  for (const spec of list) {
+    const cost = rendererCost(spec, {}, false)
+    assert.ok(cost.standingChars > 0, `${spec.id} 应当有常驻字符数`)
+    assert.ok(cost.standingTokens > 0, `${spec.id} 应当有常驻 token 估算`)
+    assert.ok(cost.figureChars > 0, `${spec.id} 应当有每图字符数`)
+    assert.ok(cost.figureTokens > 0, `${spec.id} 应当有每图 token 估算`)
+    // token 必须小于字符数（中文 1.5、其余 4，任何混合都满足）
+    assert.ok(cost.standingTokens <= cost.standingChars, `${spec.id} 常驻 token 不该超过字符数`)
+    assert.ok(cost.figureTokens <= cost.figureChars, `${spec.id} 每图 token 不该超过字符数`)
+    assert.ok(typeof cost.figureBasis === 'string' && cost.figureBasis.length > 0, `${spec.id} 要说明每图数字的依据`)
+  }
+  // 手写 SVG 的示例远小于真实插图，必须用声明值，否则会把最贵的画法显示成最便宜
+  const svg = list.find((spec) => spec.id === 'svg')
+  const svgCost = rendererCost(svg, {}, false)
+  assert.ok(svgCost.figureChars >= 10000, `svg 的每图成本应当按典型插图算，实际 ${svgCost.figureChars}`)
+  assert.ok(svgCost.figureChars > String(svg.sample).length * 5, 'svg 的典型值应当明显大于其最小示例')
+  // 相对关系：手写 SVG 每图最贵，mermaid 最便宜 —— 这是设置页要让用户看到的结论
+  const costs = list.map((spec) => ({ id: spec.id, tokens: rendererCost(spec, {}, false).figureTokens }))
+  const dearest = costs.reduce((a, b) => (a.tokens >= b.tokens ? a : b))
+  assert.equal(dearest.id, 'svg', '每图最贵的应当是手写 SVG')
+})
+
+it('成本估算口径：中文比英文贵，且不依赖具体 tokenizer', async () => {
+  // 这条钉的是"口径可解释"：同样的字符数，中文估出来的 token 更多
+  const { estimateTokens } = await import('../lib/index.js')
+  assert.ok(estimateTokens('中'.repeat(100)) > estimateTokens('a'.repeat(100)), '中文每字符占的 token 应当更多')
+  assert.equal(estimateTokens(''), 0)
+  assert.ok(estimateTokens('中'.repeat(15)) === 10, '15 个中文字按 1.5 字符/token 应当是 10')
+  assert.ok(estimateTokens('a'.repeat(40)) === 10, '40 个 ASCII 按 4 字符/token 应当是 10')
 })
