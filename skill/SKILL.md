@@ -11,6 +11,7 @@
 | 极简框线图 —— 语法最短，适合小而清楚的流程 | nomnoml | ```nomnoml |
 | 数量、占比、趋势、对比 —— 数据图表首选，中文排版友好 | ECharts | ```echarts / ```echarts-interactive |
 | 分层、分面、多视图统计图 —— 表达力最强，适合复杂的数据关系 | Vega-Lite | ```vega-lite / ```vegalite / ```vega |
+| 等距剖面、体素方块、展示柜式空间图 —— 要表现结构关系、层次与"切开看内部"时用它 | 等距展示 | ```isometric / ```isometric-interactive |
 | 概念对照、时间线、成长路线、架构分工 —— 模型按设计系统手写 SVG，布局与语义配色完全自由，最出彩（参照应用的真正用法） | SVG 图示（手写） | ```svg |
 
 ## 语法要点
@@ -20,6 +21,7 @@
 - **nomnoml**：[A] -> [B]；边标签写在端点和箭头之间：[A] 是 -> [B]；决策就是普通方框 [命中]，不要写 <choice>（尖括号会被当文本渲染）；中文必须加 #padding: 22 补偿它按西文字宽估算
 - **ECharts**：JSON 配置：{ "xAxis": { "type": "category", "data": [...] }, "series": [{ "type": "bar", "data": [...] }] }；饼图用 "type": "pie"
 - **Vega-Lite**：Vega-Lite v6 JSON：{ "$schema": "…/v6.json", "data": { "values": [...] }, "mark": "bar", "encoding": { … } }；叠加用 "layer": [ … ]
+- **等距展示**：JSON：{ "kind": "solid", "objects": [{ "type": "shell", "r": 1.3, "thickness": 0.16, "color": "amber" }] } 或 { "kind": "voxel", "grid": 17, "palette": { "#": "amber" }, "shapes": [{ "shape": "shell", "r": 7, "thickness": 1.6, "fill": "#" }] }；颜色用语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb
 - **SVG 图示（手写）**：直接写 <svg viewBox="0 0 680 XXX" width="100%" role="img">…</svg>；必须带 <title> 与 <desc>；圆角 rx=8、边框 0.5px、暖中性配色（见参考页）
 
 ## 常见语法错误
@@ -43,6 +45,12 @@
 - **Vega-Lite**
   - 必须有 `mark` 与 `data`；字段引用写在 `encoding.x.field`。
   - 这是 Vega-Lite，不是 Vega：不要写 `signals` / `marks` 这类运行时语法；叠加用 `layer`。
+- **等距展示**
+  - kind 只能是 solid 或 voxel；两种都是 JSON，不能有注释或尾随逗号。
+  - 颜色写语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb；voxel 的 palette 键必须是单个字符。
+  - voxel 的 layers 与 shapes 二选一；用 shapes 时只有会放置体素的形状需要 fill（collapse 是挖空，不需要）。
+  - 不要自己算缩放与取景 —— 引擎会自动把场景放进画布，你只描述有什么、在哪、什么颜色。
+  - 需要转动或切开看内部时用 ```isometric-interactive；静态图用 ```isometric。
 - **SVG 图示（手写）**
   - 手写 SVG 没有语法可错，但必须带 `<title>` 与 `<desc>`；`viewBox` 用 `0 0 680 高`（高 ≤ 400），否则会被画布裁切。
 
@@ -90,4 +98,5 @@
 | nomnoml | 阅读 [references/nomnoml.md](references/nomnoml.md) |
 | ECharts | 阅读 [references/echarts.md](references/echarts.md) |
 | Vega-Lite | 阅读 [references/vega-lite.md](references/vega-lite.md) |
+| 等距展示 | 阅读 [references/isometric.md](references/isometric.md) |
 | SVG 图示（手写） | 阅读 [references/svg.md](references/svg.md) |

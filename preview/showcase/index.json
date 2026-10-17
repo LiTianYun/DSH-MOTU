@@ -42,6 +42,18 @@
     "size": "467×251"
   },
   {
+    "id": "isometric-solid",
+    "renderer": "isometric",
+    "title": "等距剖面 · 中空星球展示柜",
+    "size": "680×430"
+  },
+  {
+    "id": "isometric-voxel",
+    "renderer": "isometric",
+    "title": "体素剖面 · 方块化的空间关系",
+    "size": "680×430"
+  },
+  {
     "id": "svg-comparison",
     "renderer": "svg",
     "title": "手写 SVG · 概念对照",

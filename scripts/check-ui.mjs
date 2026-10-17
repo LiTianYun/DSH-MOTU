@@ -89,7 +89,15 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   await page.screenshot({ path: join(out, 'mobile-light.png'), fullPage: true })
   await page.evaluate(() => document.documentElement.dataset.theme = 'dark')
-  await page.waitForFunction(() => document.querySelectorAll('.vk-figure[data-vk-theme="dark"][data-vk-display-state="ready"]').length === 9)
+  // 数量从目录推导：每加一个渲染器，夹具就多一块静态图
+  const expectedFigures = await page.evaluate(async () => {
+    const catalogue = await (await fetch('/dsh-visual-kit/renderers.json')).json()
+    return catalogue.renderers.length + 3
+  })
+  await page.waitForFunction(
+    (expected) => document.querySelectorAll('.vk-figure[data-vk-theme="dark"][data-vk-display-state="ready"]').length === expected,
+    expectedFigures,
+  )
   await page.screenshot({ path: join(out, 'mobile-dark.png'), fullPage: true })
   checks.push('375px 窄屏 resize 与主题重建正常，无页面横向溢出')
 
@@ -247,6 +255,45 @@ try {
   assert.equal(await page.evaluate(() => document.activeElement?.dataset?.vkAction), 'expand', '焦点应回到放大按钮')
   assert.equal(await page.evaluate(() => document.body.style.overflow), '', '页面滚动应恢复')
   checks.push('放大展示：底色不透明、滚轮细步缩放、拖拽平移、点图形区域关闭并归还焦点')
+
+  // isometric：交互在本地重算，不重新请求模型
+  await page.evaluate(() => addBlock('iso-live', 'isometric-interactive', JSON.stringify({
+    kind: 'solid', title: '交互等距图', desc: '拖拽旋转、滚轮缩放、图内切剖面。',
+    case: 2.0, cut: 0.7,
+    objects: [
+      { type: 'box', at: [0, 0, -0.9], size: [1.8, 1.8, 0.3], color: 'ink' },
+      { type: 'ball', r: 0.5, color: 'blue' },
+    ],
+  })))
+  await page.waitForFunction(() => document.querySelector('#iso-live .vk-figure')?.dataset.vkDisplayState === 'ready')
+  assert.equal(await page.evaluate(() => document.querySelector('#iso-live .vk-figure')?.dataset.vkMode), 'interactive')
+  // 先滚进视口再抓初始快照：page.mouse 用的是视口坐标（元素在折叠线以下时事件落不到它身上），
+  // 而滚动会改变滚动条、进而改变容器宽度 —— 快照与重置必须在同一布局状态下抓取。
+  await page.locator('#iso-live .vk-iso-view').scrollIntoViewIfNeeded()
+  const isoBefore = await page.evaluate(() => document.querySelector('#iso-live .vk-iso-view svg')?.outerHTML ?? '')
+  const isoBox = await page.locator('#iso-live .vk-iso-view').boundingBox()
+  await page.mouse.move(isoBox.x + isoBox.width / 2, isoBox.y + isoBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(isoBox.x + isoBox.width / 2 + 120, isoBox.y + isoBox.height / 2, { steps: 8 })
+  await page.mouse.up()
+  await page.waitForTimeout(200)
+  const isoAfterDrag = await page.evaluate(() => document.querySelector('#iso-live .vk-iso-view svg')?.outerHTML ?? '')
+  assert.notEqual(isoAfterDrag, isoBefore, '拖拽应改变视角')
+  await page.locator('#iso-live .vk-iso-button', { hasText: '剖面' }).first().click()
+  await page.waitForTimeout(200)
+  const isoAfterCut = await page.evaluate(() => document.querySelector('#iso-live .vk-iso-view svg')?.outerHTML ?? '')
+  assert.notEqual(isoAfterCut, isoAfterDrag, '剖面开关应改变画面')
+  // 剖面是独立开关，「重置视角」只重置视角：先把剖面切回去，再重置，
+  // 此时画面应当与初始完全一致（确定性渲染的端到端证据）。
+  await page.locator('#iso-live .vk-iso-button', { hasText: '剖面' }).first().click()
+  await page.waitForTimeout(200)
+  await page.locator('#iso-live .vk-iso-button', { hasText: '重置视角' }).first().click()
+  await page.waitForTimeout(200)
+  const isoReset = await page.evaluate(() => document.querySelector('#iso-live .vk-iso-view svg')?.outerHTML ?? '')
+  assert.notEqual(isoReset, isoAfterCut, '重置应改变画面')
+  assert.equal(isoReset, isoBefore, '剖面切回 + 重置视角后，画面应与初始逐字节一致')
+  await page.screenshot({ path: join(out, 'isometric.png') })
+  checks.push('等距展示：拖拽旋转、图内切剖面、重置视角均在本地生效')
 
   const config = await page.request.post(fixture.url + '/dsh-visual-kit/config', { data: { renderers: { echarts: { interactive: false } } } })
   assert.equal(config.status(), 200)

@@ -2,6 +2,32 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.0] — 2026-10-17
+
+新增第七种渲染方式，并把"以后还要加很多风格"所需的扩展位一并装上。
+
+- **等距展示渲染器**（` ```isometric ` / ` ```isometric-interactive `）：
+  两种 kind 共用一条管线 —— `solid` 用图元（box / shell / ball / cylinder / ring）
+  搭出带展示柜与剖面的场景，`voxel` 用程序化形状或 ASCII 图层搭方块模型。
+  投影、画家算法排序、剖面、取景、图例、编号引线、浅深主题全部由引擎负责，
+  **模型只描述有什么、在哪、什么颜色**。
+- **交互在本地**：拖拽旋转（Shift 吸附 90°）、滚轮缩放、图内切剖面，
+  全部在浏览器里重算。引擎是纯数学、零依赖，所以转个角度不重新请求模型、
+  不产生 token；也不需要 vendor 任何第三方库。
+- **扩展位（为后续风格准备）**：
+  - 交互派发不再硬编码 `echarts-interactive`，改为由 manifest 的 `modes` 推导，
+    渲染器自带 `validate` 钩子；
+  - 新增自绘渲染器工具箱 `svgKit`（语义令牌、XML 转义、画布骨架、class 化样式块、
+    图例、引线、统一限额）与等距基座 `isometricCore`（投影、排序、剖面、
+    体素表面提取、三面明暗）以及 `ISO_KINDS` 注册表；
+  - manifest 新增 `family` / `promptNote` / `limits`；提示段按预算封顶
+    （6 个渲染器 623 字符，50 个仍 896 字符，超出部分点名去技能参考页）；
+  - `check-ui` 的图数量改为从目录推导，不再硬编码。
+- **新增测试**：`test/isometric.test.mjs`（9 例）、`test/kit.test.mjs`（12 例）、
+  `test/prompt.test.mjs`（4 例），另加一组 Chromium 交互验收。
+  取景越界、剖面切换不回原值、产物非法 XML 这三类问题都是被它们抓到的。
+- 版本三处同步：`package.json`、`CLIENT_REV`、宿主 `rev`。
+
 ## [0.4.2] — 2026-10-17
 
 - **错误卡片点名 Mermaid 旗形节点的括号坑**：真实失败是

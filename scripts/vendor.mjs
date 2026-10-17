@@ -68,6 +68,13 @@ const PITFALLS = {
   echarts: [
     'JSON 里不能有注释或尾随逗号；`series` 每项必须带 `type`，数据放在 `series.data`。',
   ],
+  isometric: [
+    'kind 只能是 solid 或 voxel；两种都是 JSON，不能有注释或尾随逗号。',
+    '颜色写语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb；voxel 的 palette 键必须是单个字符。',
+    'voxel 的 layers 与 shapes 二选一；用 shapes 时只有会放置体素的形状需要 fill（collapse 是挖空，不需要）。',
+    '不要自己算缩放与取景 —— 引擎会自动把场景放进画布，你只描述有什么、在哪、什么颜色。',
+    '需要转动或切开看内部时用 \u0060\u0060\u0060isometric-interactive；静态图用 \u0060\u0060\u0060isometric。',
+  ],
   svg: [
     '手写 SVG 没有语法可错，但必须带 `<title>` 与 `<desc>`；`viewBox` 用 `0 0 680 高`（高 ≤ 400），否则会被画布裁切。',
   ],
@@ -241,9 +248,12 @@ ${navigationRows}
 )
 
 for (const spec of renderers) {
-  const versions = spec.assets
-    .map((asset) => `${asset.pkg}@${integrity[asset.path]?.version ?? 'unknown'}`)
-    .join(', ')
+  const versions = spec.assets.length === 0
+    // 自绘渲染器不加载任何第三方引擎：参考页要说明这一点，而不是留一个空的"引擎："
+    ? '内置于插件（无第三方引擎，投影在本地计算）'
+    : spec.assets
+        .map((asset) => `${asset.pkg}@${integrity[asset.path]?.version ?? 'unknown'}`)
+        .join(', ')
   const fontNote = {
     stack: '字体使用宿主应用的字体栈，与正文同字号（13px），无需你处理。',
     'single-family': '该引擎只能指定**单一字体族**（CSS 字体栈无效）。中文必须显式写字体，否则标签会缺字。',

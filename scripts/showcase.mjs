@@ -183,6 +183,56 @@ const examples = [
 }`,
   },
   {
+    id: 'isometric-solid',
+    renderer: 'isometric',
+    title: '等距剖面 · 中空星球展示柜',
+    language: 'isometric',
+    source: `{
+  "kind": "solid",
+  "title": "碎空星 · 等距剖面",
+  "desc": "展示柜里的中空行星：碎裂岩壳、黑洞、悬空城与白洞站方向，切开前四分之一看内部。",
+  "case": 2.3,
+  "cut": 0.72,
+  "objects": [
+    { "type": "shell", "r": 1.34, "thickness": 0.17, "color": "amber", "segments": 30, "rings": 16, "label": "碎裂岩壳" },
+    { "type": "ball", "r": 0.44, "color": "ink", "segments": 18, "rings": 9, "label": "黑洞" },
+    { "type": "ring", "at": [0, 0, 0.12], "r": 0.88, "count": 7, "size": [0.24, 0.24, 0.18], "color": "purple", "label": "悬空城" },
+    { "type": "box", "at": [-2.0, -1.4, 0.8], "size": [0.34, 0.34, 0.12], "color": "blue", "label": "白洞站方向" }
+  ],
+  "callouts": [
+    { "at": [0.95, 0.95, 0.55], "text": "碎裂岩壳" },
+    { "at": [0, 0, 0], "text": "黑洞" },
+    { "at": [0.62, -0.62, 0.12], "text": "悬空城" },
+    { "at": [-2.0, -1.4, 0.8], "text": "白洞站方向", "side": "left" }
+  ]
+}`,
+  },
+  {
+    id: 'isometric-voxel',
+    renderer: 'isometric',
+    title: '体素剖面 · 方块化的空间关系',
+    language: 'isometric',
+    source: `{
+  "kind": "voxel",
+  "grid": 18,
+  "cut": true,
+  "title": "碎空星 · 体素剖面",
+  "desc": "把中空行星拆成方块：球壳、随机塌陷缺口、中心黑洞与内侧悬空城。",
+  "palette": { "#": "amber", "o": "purple", "@": "ink" },
+  "shapes": [
+    { "shape": "shell", "r": 7.4, "thickness": 1.7, "fill": "#" },
+    { "shape": "collapse", "count": 14, "radius": [1.6, 3.6], "seed": 11 },
+    { "shape": "cluster", "count": 22, "r": 5.4, "fill": "o", "seed": 3 },
+    { "shape": "ball", "r": 1.7, "fill": "@" }
+  ],
+  "legend": [
+    { "color": "amber", "text": "碎裂岩壳" },
+    { "color": "purple", "text": "悬空城" },
+    { "color": "ink", "text": "黑洞" }
+  ]
+}`,
+  },
+  {
     id: 'svg-comparison',
     renderer: 'svg',
     title: '手写 SVG · 概念对照',
