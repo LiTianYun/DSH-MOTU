@@ -16,6 +16,7 @@ import { after, before, describe, it } from 'node:test'
 
 import { Config, apply, mergeConfigPatch, promptText, sanitizeConfigPatch, skillSummary } from '../lib/index.js'
 import { enabledRenderers, renderers } from '../lib/renderers/manifest.js'
+import { styles } from '../lib/styles.js'
 
 const here = fileURLToPath(new URL('..', import.meta.url))
 const VENDOR = join(here, 'vendor')
@@ -330,7 +331,7 @@ describe('配置写入（设置页开关的数据通道）', () => {
     }
   })
 
-  it('通过设置路由切换三档后，实际注册的提示和技能一起替换，旧注册被释放', async () => {
+  it('通过设置路由切换画法及整图风格后，提示和技能一起替换，旧注册被释放', async () => {
     const routes = new Map(), sections = new Set(), skills = new Set()
     let current = Config({}), dispose
     const ctx = {
@@ -362,6 +363,23 @@ describe('配置写入（设置页开关的数据通道）', () => {
         assert.ok([...sections][0].text.includes(label))
         assert.ok([...skills][0].description.includes(label))
         assert.ok([...skills][0].content.includes(label))
+      }
+      for (const styleId of ['blueprint', 'motu', 'blueprint']) {
+        const oldSection = [...sections][0], oldSkill = [...skills][0]
+        const result = await call(routes, 'POST', '/dsh-visual-kit/config', { body: JSON.stringify({ presentation: { style: styleId } }) })
+        assert.equal(result.status, 200)
+        assert.equal(sections.size, 1)
+        assert.equal(skills.size, 1)
+        assert.ok(!sections.has(oldSection) && !skills.has(oldSkill), '换风格也必须释放旧模型指引')
+        const style = styles.find(style => style.id === styleId)
+        const body = [...skills][0].content
+        assert.ok(body.includes(style.guidance))
+        assert.ok(!body.includes(styles.find(style => style.id !== styleId).guidance), '只传递当前选中的完整规范')
+        if (styleId === 'blueprint') assert.ok([...sections][0].text.includes('视觉风格：简洁风'))
+        else assert.ok(![...sections][0].text.includes('简洁风'), '切回默认不能残留上一个风格')
+        const snapshot = JSON.parse((await call(routes, 'GET', '/dsh-visual-kit/config')).body).value
+        assert.equal(snapshot.settings.style, styleId)
+        assert.equal(snapshot.settings.svgPreference, 50, '风格切换不改画法')
       }
     } finally { dispose() }
     assert.equal(sections.size, 0)

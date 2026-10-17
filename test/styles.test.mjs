@@ -55,7 +55,7 @@ function catalogueFor(styleId) {
 }
 
 it('注册表结构完整，且默认风格是第一个', () => {
-  assert.ok(styles.length >= 2, '至少要有默认与工程图纸两种风格')
+  assert.ok(styles.length >= 2, '至少要有默认与简洁风两种风格')
   assert.equal(styles[0].id, 'motu', '第一个是默认风格')
   for (const style of styles) {
     assert.match(style.id, /^[a-z][a-z0-9-]*$/, `${style.id} 应是稳定的 id`)
@@ -153,7 +153,8 @@ it('非默认风格在常驻提示段里点名，默认风格不加行', () => {
   const motu = promptText({ presentation: { style: 'motu' } }, usable)
   const blueprint = promptText({ presentation: { style: 'blueprint' } }, usable)
   assert.ok(!motu.includes('视觉风格：'), '默认风格不必重复付费')
-  assert.match(blueprint, /视觉风格：工程图纸/)
+  assert.match(blueprint, /视觉风格：简洁风/)
+  assert.match(blueprint, /整图构图、排版、层级与标注/)
   assert.ok(blueprint.length - motu.length < 120, `风格行要短，实际增加 ${blueprint.length - motu.length} 字符`)
 })
 
@@ -164,7 +165,7 @@ it('技能正文带上当前风格的完整指引', () => {
   assert.ok(skill.includes(style.guidance), '技能要带上该风格的完整令牌与线型')
 })
 
-it('风格预览：用该风格自己的令牌、圆角与线宽画出节点与连线', (t) => {
+it('风格预览：同一主题展示整图标题、分区、正文和图例，可比较版式', (t) => {
   const { client } = loadClient(t)
   const preview = client.internals.stylePreview
   assert.equal(typeof preview, 'function', '预览组件应导出以便单测')
@@ -172,21 +173,25 @@ it('风格预览：用该风格自己的令牌、圆角与线宽画出节点与�
   for (const style of styles) {
     const tree = preview(styleEntry(style, style.id))
     assert.equal(tree.type, 'svg', `${style.id} 预览应是 svg`)
-    const kinds = tree.children.map((child) => child.type)
-    assert.ok(kinds.includes('rect'), `${style.id} 预览应含节点卡`)
-    assert.ok(kinds.includes('path'), `${style.id} 预览应含连线`)
+    const walk = node => typeof node === 'object' && node !== null ? [node, ...node.children.filter(child => child?.type !== 'defs').flatMap(walk)] : []
+    const elements = walk(tree)
+    const texts = elements.filter(node => node.type === 'text').map(node => node.children.join(''))
+    assert.ok(texts.includes('方案说明'), '预览应有整图标题')
+    assert.ok(texts.includes('主体信息') && texts.includes('补充说明'), '预览应有图例')
+    assert.ok(texts.length >= 8, '预览应展示实际排版层级，而非几个空框')
 
-    const rects = tree.children.filter((child) => child.type === 'rect')
+    const rects = elements.filter((child) => child.type === 'rect')
+    assert.ok(rects.length >= 2)
     for (const rect of rects) {
       assert.equal(rect.props.rx, style.shape.cardRadius, `${style.id} 预览圆角应取该风格`)
       assert.equal(rect.props.strokeWidth, style.shape.hairline, `${style.id} 预览边框应取该风格`)
       assert.equal(rect.props.stroke, style.chrome.light.nodeBorder, `${style.id} 预览边框色应取该风格`)
     }
-    const edge = tree.children.find((child) => child.type === 'path')
+    const edge = elements.find((child) => child.type === 'path' && child.props.strokeWidth === style.shape.edgeWidth)
     assert.equal(edge.props.strokeWidth, style.shape.edgeWidth, `${style.id} 预览线宽应取该风格`)
     if (style.shape.edge === 'orthogonal') {
       assert.match(edge.props.d, /V/, `${style.id} 正交风格应画出折点`)
-      assert.equal(edge.props.markerEnd, undefined, '正交风格不带箭头标记')
+      assert.ok(texts.includes('01  结构与分工'), '简洁风应呈现清楚的编号分区')
     } else {
       assert.ok(!/V/.test(edge.props.d), `${style.id} 开放箭头风格不应有折点`)
       assert.ok(String(edge.props.markerEnd ?? '').startsWith('url(#'), '开放箭头风格应挂箭头标记')
@@ -194,4 +199,19 @@ it('风格预览：用该风格自己的令牌、圆角与线宽画出节点与�
     }
     assert.equal(tree.props.style.background, style.surface.light, `${style.id} 预览底色应取该风格`)
   }
+})
+
+it('简洁风规范覆盖整图，电气配色不强加给其他主题，公共 SVG 规则不覆盖风格', () => {
+  const content = readFileSync(new URL('../skill/SKILL.md', import.meta.url), 'utf8')
+  const body = effectiveSkillContent(content, { presentation: { style: 'blueprint' } }, usable)
+  assert.match(body, /架构、流程、原理说明、对照与 SVG 剖面插图/)
+  assert.match(body, /仅在电气内容中采用/)
+  assert.match(body, /其他内容不得机械套用/)
+  assert.match(body, /参考页的示例仅供语法参考，不得覆盖当前风格/)
+  const common = body.split('## 手写 SVG 设计系统')[1].split('\n## ')[0]
+  assert.doesNotMatch(common, /#F1EFE8|rx="8"|边框.*0\.5/)
+  assert.doesNotMatch(body, /颜色只表示链路类型/)
+  assert.match(body, /已有手写 SVG 不会自动改写/)
+  assert.ok(!body.includes(styles[0].guidance), '运行时不应同时给出另一个风格的完整规范')
+  assert.equal(body.split(styles.find(style => style.id === 'blueprint').guidance).length, 2, '当前完整规范只注入一次')
 })

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { it } from 'node:test'
 import { setupDom } from '../scripts/dom-env.mjs'
+import { styles, styleEntry } from '../lib/styles.js'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 // Exercise private functions without adding to the shipped module's public API.
@@ -337,5 +338,50 @@ it('绘图方式点选即保存，兼容旧数值，失败保留原选项并允�
   await radio('standard').props.onChange(); tree = panel()
   assert.equal(saved, 20)
   assert.equal(radio('standard').props.checked, true)
+  assert.equal(tree.some(node => node.props?.role === 'alert'), false)
+})
+
+it('整图风格控件真实保存，保存中锁定操作，失败保留原风格，重新读取恢复', async t => {
+  const { client, react, cat, window } = load(t)
+  let active = 'motu', rejectWrite = false, finish
+  const writes = []
+  window.fetch = async (url, options) => {
+    if (options?.method === 'POST' && url.endsWith('/config')) {
+      const patch = JSON.parse(options.body)
+      writes.push(patch)
+      await new Promise(resolve => { finish = resolve })
+      if (!rejectWrite) active = patch.presentation.style
+      return { ok: !rejectWrite, json: async () => ({ ok: !rejectWrite, error: { message: '保存失败' } }) }
+    }
+    return { ok: true, json: async () => url.endsWith('/config')
+      ? { value: { settings: { autoRender: true, svgPreference: 80 } } }
+      : { ...cat, presentation: { style: active }, styles: styles.map(style => styleEntry(style, active)) } }
+  }
+  const panel = () => { react.reset(); return walk(client.internals.CapabilityPanel()) }
+  panel(); react.effects[0](); await tick(); await tick()
+  let tree = panel()
+  const radio = id => tree.find(node => node.type === 'input' && node.props.name === 'vk-style' && node.props.value === id)
+  assert.equal(radio('motu').props.checked, true)
+  const select = radio('blueprint').props.onChange
+  const pending = select()
+  tree = panel()
+  assert.ok(tree.filter(node => node.type === 'input').every(node => node.props.disabled))
+  await select()
+  assert.equal(writes.length, 1)
+  finish(); await pending
+  tree = panel()
+  assert.deepEqual(writes[0], { presentation: { style: 'blueprint' } })
+  assert.equal(radio('blueprint').props.checked, true)
+  assert.equal(tree.find(node => node.type === 'input' && node.props.value === 'svg').props.checked, true, '换风格不改绘图方式')
+  rejectWrite = true
+  const failed = radio('motu').props.onChange()
+  finish(); await failed
+  tree = panel()
+  assert.equal(radio('blueprint').props.checked, true, '写入失败不能假装切换成功')
+  assert.ok(tree.some(node => node.props?.role === 'alert'))
+  active = 'motu'
+  await tree.find(node => node.type === 'button' && node.children.includes('重新读取')).props.onClick()
+  tree = panel()
+  assert.equal(radio('motu').props.checked, true)
   assert.equal(tree.some(node => node.props?.role === 'alert'), false)
 })
