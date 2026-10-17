@@ -295,6 +295,21 @@ try {
   await page.screenshot({ path: join(out, 'isometric.png') })
   checks.push('等距展示：拖拽旋转、图内切剖面、重置视角均在本地生效')
 
+  // 视觉风格：用户可选的外观层。走真实配置路由换风格，引擎图必须按新令牌重绘。
+  const beforeStyle = await page.evaluate(() => document.querySelector('#static-isometric .vk-canvas svg')?.outerHTML ?? '')
+  assert.ok(beforeStyle.length > 0, '应有等距图可供比较')
+  const styled = await page.request.post(fixture.url + '/dsh-visual-kit/config', { data: { presentation: { style: 'blueprint' } } })
+  assert.equal(styled.status(), 200)
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await page.waitForFunction(() => {
+    const svg = document.querySelector('#static-isometric .vk-canvas svg')
+    return svg !== null && /F4F6F9|161E27/.test(svg.outerHTML)
+  })
+  const afterStyle = await page.evaluate(() => document.querySelector('#static-isometric .vk-canvas svg')?.outerHTML ?? '')
+  assert.notEqual(afterStyle, beforeStyle, '换风格后画面应不同')
+  assert.ok(!/fill="#FFFFFF"|fill="#1E1E1C"/.test(afterStyle), '不应再是默认风格的画布底')
+  checks.push('视觉风格：换风格后引擎图按新令牌重绘')
+
   const config = await page.request.post(fixture.url + '/dsh-visual-kit/config', { data: { renderers: { echarts: { interactive: false } } } })
   assert.equal(config.status(), 200)
   await page.evaluate(() => window.dispatchEvent(new Event('focus')))

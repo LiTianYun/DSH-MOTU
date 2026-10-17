@@ -26,6 +26,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { renderers } from '../lib/renderers/manifest.js'
+import { styles } from '../lib/styles.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
@@ -174,6 +175,34 @@ const navigationRows = renderers
   .map((spec) => `| ${spec.label} | 阅读 [references/${spec.id}.md](references/${spec.id}.md) |`)
   .join('\n')
 
+/**
+ * The visual-style section of the skill.
+ *
+ * The active style is named in the standing prompt; this lists every style so
+ * the model can tell them apart and knows what a hand-written figure must match.
+ *
+ * @returns {string} the markdown section.
+ */
+function styleSection() {
+  const rows = styles
+    .map((style) => '| **' + style.label + '**（' + String.fromCharCode(96) + style.id + String.fromCharCode(96) + '） | ' + style.summary + ' | ' + style.description + ' |')
+    .join('\n')
+  const detail = styles.map((style) => '- **' + style.label + '**：' + style.guidance).join('\n')
+  return [
+    '## 可选视觉风格',
+    '',
+    '风格与渲染器正交：渲染器决定画什么，风格决定怎么读。**当前生效的风格写在提示段的「视觉风格」一行**；没有那一行就是默认的「' + styles[0].label + '」。手写 SVG 时必须按当前风格的令牌与线型来画。',
+    '',
+    '| 风格 | 特征 | 适合 |',
+    '| --- | --- | --- |',
+    rows,
+    '',
+    '各风格的完整令牌与线型：',
+    '',
+    detail,
+    '',
+  ].join('\n')
+}
 writeFileSync(
   join(skillDir, 'SKILL.md'),
   `# 可视化输出
@@ -243,7 +272,7 @@ ${renderers
 | 渲染器 | 完整示例与注意事项 |
 | --- | --- |
 ${navigationRows}
-`,
+` + styleSection(),
   'utf8',
 )
 
