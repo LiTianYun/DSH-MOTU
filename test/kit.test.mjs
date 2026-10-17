@@ -64,9 +64,10 @@ it('明暗：加深变暗、提亮变亮，且对 rgb() 形式同样有效', (t)
 it('限额：超限时给出可操作的建议', (t) => {
   const { kit } = loadClient(t)
   kit.enforceLimits(undefined, { faces: 10 })
-  assert.throws(() => kit.enforceLimits({ faces: 5 }, { faces: 6 }), /faces ≤ 5.*当前 6.*减少细分/s)
-  assert.throws(() => kit.enforceLimits({ grid: 8 }, { grid: 9 }), /grid ≤ 8.*调小 grid/s)
-  assert.throws(() => kit.enforceLimits(undefined, { bytes: 999999 }), /bytes ≤ 65536/s)
+  assert.throws(() => kit.enforceLimits({ faces: 5 }, { faces: 6 }), /面数超过上限 5（当前 6），请减少细分/s)
+  assert.throws(() => kit.enforceLimits({ grid: 8 }, { grid: 9 }), /体素网格边长超过上限 8（当前 9），请调小 grid/s)
+  assert.throws(() => kit.enforceLimits(undefined, { bytes: 999999 }), /产物体积超过上限 64 KiB（当前 977 KiB）/s)
+  assert.throws(() => kit.enforceLimits({ bytes: 1024 }, { bytes: 2048 }, { bytes: "减少数据" }), /减少数据/s, "可覆盖建议文案")
 })
 
 it('画布骨架：带 title/desc、样式块、且产物是合法 XML', (t) => {
@@ -88,7 +89,7 @@ it('画布骨架：body 超过限额时拒绝', (t) => {
   const { kit } = loadClient(t)
   assert.throws(
     () => kit.svgDocument({ width: 10, height: 10, title: 't', desc: 'd', body: 'x'.repeat(70000), limits: { bytes: 1024 } }),
-    /bytes ≤ 1024/,
+    /产物体积超过上限 1 KiB/,
   )
 })
 

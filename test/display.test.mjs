@@ -201,21 +201,24 @@ it('独立测量容器不会清除另一个展示的内容', t => {
 })
 
 it('无效或超限配置在挂载和静态降级前拒绝', async t => {
-  const { api, client, block } = stage(t)
+  const { api, client, block, spec } = stage(t)
+  // 生产里适配器会把 spec.limits 传进来；测试直接调用时也必须带上，
+  // 否则走的是默认限额，测的就不是真实路径了。
+  const validateInteractiveSource2 = (source) => api.validateInteractiveSource(source, spec.limits)
   let renders = 0
   client.internals.ADAPTERS.echarts.render = async () => { renders++; return { markup: '<svg></svg>' } }
   block('echarts-interactive', JSON.stringify({ series: [{ data: Array(10001).fill(1) }] }))
   await api.scan(); await api.drain()
   assert.equal(renders, 0)
-  assert.throws(() => api.validateInteractiveSource('[]'), /顶层/)
-  assert.throws(() => api.validateInteractiveSource('{"x":"' + '中'.repeat(100000) + '"}'), /256 KiB/)
-  assert.throws(() => api.validateInteractiveSource('{"dataset":{"source":"https://example.com/data"}}'), /内联/)
+  assert.throws(() => validateInteractiveSource2('[]'), /顶层/)
+  assert.throws(() => validateInteractiveSource2('{"x":"' + '中'.repeat(100000) + '"}'), /256 KiB/)
+  assert.throws(() => validateInteractiveSource2('{"dataset":{"source":"https://example.com/data"}}'), /内联/)
   for(const value of ['{"symbol":"image://https://example.com/x.png"}', '{"graphic":{"style":{"image":"x.png"}}}', '{"__proto__":{}}']) {
-    assert.throws(() => api.validateInteractiveSource(value))
+    assert.throws(() => validateInteractiveSource2(value))
   }
-  assert.throws(() => api.validateInteractiveSource(JSON.stringify({ dataset: { source: { a: Array(10001).fill(0) } } })), /10,000/)
-  assert.throws(() => api.validateInteractiveSource(JSON.stringify({ series: [{ type: 'tree', data: [{ children: Array(10000).fill({ value: 1 }) }] }] })), /10,000/)
-  assert.throws(() => api.validateInteractiveSource(JSON.stringify({ baseOption: { series: [{ data: Array(6000).fill(0) }] }, options: [{ series: [{ data: Array(5000).fill(0) }] }] })), /10,000/)
+  assert.throws(() => validateInteractiveSource2(JSON.stringify({ dataset: { source: { a: Array(10001).fill(0) } } })), /10,000/)
+  assert.throws(() => validateInteractiveSource2(JSON.stringify({ series: [{ type: 'tree', data: [{ children: Array(10000).fill({ value: 1 }) }] }] })), /10,000/)
+  assert.throws(() => validateInteractiveSource2(JSON.stringify({ baseOption: { series: [{ data: Array(6000).fill(0) }] }, options: [{ series: [{ data: Array(5000).fill(0) }] }] })), /10,000/)
   assert.doesNotThrow(() => api.validateInteractiveSource(JSON.stringify({ series: [{ data: Array(10000).fill(0) }] })))
 })
 
