@@ -242,3 +242,67 @@ it('两个条目各自声明栅栏与交互模式，共用同一套限额', () =
   }
   assert.deepEqual(solidSpec.limits, voxelSpec.limits, '共用引擎就该共用限额')
 })
+
+it('关系检查：互穿要报，包含不算缺陷', (t) => {
+  // 借鉴 Anatomy 的几何审计（他们的初版猛禽有 54 处间隙问题、323 处深度序问题，
+  // 都是 1× 截图看不出来的）。这里只判能精确判交的形状。
+  const { client } = loadClient(t)
+  const audit = client.internals.isoAudit
+  // 客户端在 jsdom realm 里，数组要展开成本 realm 的再比
+  const kinds = (spec) => [...audit(spec, 'solid').problems].map((problem) => problem.kind)
+  const box = (at, size) => ({ type: 'box', at, size })
+
+  assert.deepEqual(kinds({ objects: [box([0, 0, 0], [1, 1, 1]), box([3, 0, 0], [1, 1, 1])] }), [], '分开的盒子不该报')
+  assert.deepEqual(kinds({ objects: [box([0, 0, 0], [1, 1, 1]), box([1, 0, 0], [1, 1, 1])] }), [], '面贴面不算互穿')
+  assert.deepEqual(kinds({ objects: [box([0, 0, 0], [2, 2, 2]), box([1, 0, 0], [2, 2, 2])] }), ['overlap'], '互穿要报')
+
+  // 包含是这些图的常用构造：球在壳里、城在球里。它不是缺陷。
+  assert.deepEqual(kinds({ objects: [box([0, 0, 0], [4, 4, 4]), { type: 'ball', r: 0.5 }] }), [], '球完整在盒内应当放行')
+  assert.deepEqual(kinds({ objects: [box([0, 0, 0], [2, 2, 2]), { type: 'ball', at: [1, 0, 0], r: 0.6 }] }), ['overlap'], '球穿过盒面要报')
+
+  // 圆柱：轴对齐，XY 与 z 都能精确判交（包围盒做不到 —— 对角相邻会误报）
+  const cyl = (at, r, h) => ({ type: 'cylinder', at, r, h })
+  assert.deepEqual(kinds({ objects: [cyl([0, 0, 0], 0.5, 2), { type: 'ball', at: [2, 0, 0], r: 0.4 }] }), [], '分开的圆柱与球不报')
+  assert.deepEqual(kinds({ objects: [cyl([0, 0, 0], 0.5, 2), { type: 'ball', at: [0.5, 0, 0], r: 0.4 }] }), ['overlap'], '圆柱穿过球要报')
+  assert.deepEqual(kinds({ objects: [cyl([0, 0, 0], 0.5, 2), cyl([1.2, 0, 0], 0.5, 2)] }), [], '并排的圆柱不报')
+  assert.deepEqual(kinds({ objects: [cyl([0, 0, 0], 0.5, 2), cyl([0.6, 0, 0], 0.5, 2)] }), ['overlap'], '重叠的圆柱要报')
+  assert.deepEqual(kinds({ objects: [cyl([0, 0, 0], 0.5, 2), cyl([0, 0, 3], 0.5, 2)] }), [], '上下错开的圆柱不报')
+})
+
+it('关系检查：引线必须落在图元上，图例必须有对应物体', (t) => {
+  const { client } = loadClient(t)
+  const audit = client.internals.isoAudit
+  const problems = (spec) => [...audit(spec, 'solid').problems]
+
+  // 引线：指向空处要报；指向圆柱/环也要算数（它们没有精确判交形状，但有包围盒）
+  const solid = { objects: [{ type: 'box', at: [0, 0, 0], size: [2, 2, 2], color: 'blue' }] }
+  assert.deepEqual(problems({ ...solid, callouts: [{ at: [0, 0, 0], text: '中心' }] }), [], '落在图元上应当放行')
+  assert.deepEqual(problems({ ...solid, callouts: [{ at: [0, 0, 1.05], text: '顶面' }] }), [], '落在面上应当放行')
+  assert.deepEqual(problems({ ...solid, callouts: [{ at: [0, 0, 3], text: '空处' }] }).map((p) => p.kind), ['callout'])
+  assert.deepEqual(
+    problems({ objects: [{ type: 'cylinder', at: [0, 0, 0], r: 0.5, h: 2, color: 'blue' }], callouts: [{ at: [0, 0, 1], text: '柱' }] }),
+    [],
+    '引线指向圆柱必须算数（第一版只判 box/ball，在我们自己的示例上误报了三处）',
+  )
+
+  // 图例：颜色必须在用
+  assert.deepEqual(problems({ ...solid, legend: [{ color: 'blue', text: '主体' }] }), [])
+  assert.deepEqual(problems({ ...solid, legend: [{ color: 'red', text: '不存在' }] }).map((p) => p.kind), ['legend'])
+})
+
+it('关系检查：我们自己的示例必须零问题', (t) => {
+  const { client } = loadClient(t)
+  for (const [id, kind] of [['isometric', 'solid'], ['voxel', 'voxel']]) {
+    const entry = renderers.find((item) => item.id === id)
+    const { problems, checked } = client.internals.isoAudit(JSON.parse(entry.sample), kind)
+    assert.deepEqual([...problems], [], `${id} 的示例不该有关系问题`)
+    if (kind === 'solid') assert.ok(checked >= 3, `${id} 的示例应当有可判交的图元，实际 ${checked}`)
+  }
+})
+
+it('关系检查：体素不做互穿判定（网格本身保证了这一点）', (t) => {
+  const { client } = loadClient(t)
+  const result = client.internals.isoAudit({ grid: 8, shapes: [] }, 'voxel')
+  assert.equal(result.checked, 0)
+  assert.deepEqual([...result.problems], [])
+})

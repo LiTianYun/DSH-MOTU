@@ -176,6 +176,35 @@ const navigationRows = renderers
   .join('\n')
 
 /**
+ * The pre-flight checklist for a figure.
+ *
+ * Ported from the Anatomy skill's craft notes, where every entry is traced to a
+ * figure that was rejected for it. Kept short and phrased as things that go wrong,
+ * because that is what makes a rule memorable enough to be applied.
+ *
+ * @returns {string} the markdown section.
+ */
+function checklistSection() {
+  return [
+    '## 出图前的自检',
+    '',
+    '每条都对应一次真实返工（前几条借鉴自 Anatomy 的工艺笔记，那里每条都记着是哪张图被谁驳回的）。',
+    '',
+    '- **线停在半空**：手写 SVG 里每条开放路径都要落在别的笔画、圆点或轮廓上。一条没有落点的线，读者会以为它指向别处。',
+    '- **纹理画到一半断掉**：刻度、螺栓点、肋条要么结束在真实边界上，要么淡出。硬切在面中间读起来像坏了。',
+    '- **靠眼睛调一张特写**：手调的键在 1× 下看着对，实际可能有几百处深度序错误（Anatomy 初版猛禽：54 处间隙问题、323 处深度序问题，全是截图看不出来的）。**先测量，再看。**',
+    '- **抽象堆叠**：浮着的板子代表"层"，读者认不出是什么。做成抽屉、托盘、导轨上的滑台。',
+    '- **一块大平板**：大面配几条线太平。拆成底座 + 滑台 + 零件，加沟槽、螺丝、标尺。',
+    '- **文字塞进图里**：文字进标题、图例与说明；图内只留必要标注（编号引线是有意的，但不要每块都标）。',
+    '- **颜色铺满**：留一处高亮告诉眼睛先看哪里，其余克制。',
+    '- **指针瞬移**：一切移动都要缓动，慢到能跟上。',
+    '- **照抄参考图**：取气质与完成度，物件自己造。',
+    '',
+    '等距与体素还有一条硬检查（`npm run check:renderers` 会跑）：物体不得互穿、引线必须落在图元上、图例项必须有对应物体。包含不算缺陷——球在壳里、城在球里是这些图的常用构造。',
+    '',
+  ].join('\n')
+}
+/**
  * The visual-style section of the skill.
  *
  * The active style is named in the standing prompt; this lists every style so
@@ -272,7 +301,7 @@ ${renderers
 | 渲染器 | 完整示例与注意事项 |
 | --- | --- |
 ${navigationRows}
-` + styleSection(),
+` + styleSection() + checklistSection(),
   'utf8',
 )
 

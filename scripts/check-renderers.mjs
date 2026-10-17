@@ -131,6 +131,17 @@ for (const spec of renderers) {
       const message = String(parserError?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 160)
       throw new Error(`产物不是合法 XML（严格解析会裂图）：${message}`)
     }
+    // 等距/体素还要过关系检查：产物合法 XML 不代表画对了 —— 物体互穿、引线指向
+    // 空处、图例项没有对应物体，这三类都能产出完全合法的 XML（借鉴 Anatomy 的
+    // 几何审计：他们的初版猛禽有 54 处间隙问题，1× 截图看不出来）。
+    if (spec.id === 'isometric' || spec.id === 'voxel') {
+      const audit = client.internals?.isoAudit
+      if (typeof audit !== 'function') throw new Error('isoAudit 未导出，关系检查无法运行')
+      const { problems } = audit(JSON.parse(spec.sample), spec.id === 'voxel' ? 'voxel' : 'solid')
+      if (problems.length > 0) {
+        throw new Error(`关系检查未通过：${problems.map((problem) => problem.detail).join('；')}`)
+      }
+    }
     rows.push({ id: spec.id, ok: true, bytes: markup.length, elapsed, version })
     console.log(`ok   ${label} ${String(markup.length).padStart(7)} 字符  ${String(elapsed).padStart(5)} ms  ${version}`)
   } catch (error) {
