@@ -26,6 +26,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { renderers } from '../lib/renderers/manifest.js'
+import { rendererCost } from '../lib/index.js'
 import { styles } from '../lib/styles.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -167,13 +168,55 @@ console.log(`\nvendor/integrity.json  ${Object.keys(integrity).length} 个文件
 
 mkdirSync(join(skillDir, 'references'), { recursive: true })
 
+// 成本数字从同一份计算里取，避免像上一版那样手写后漂掉
+const costRows = [...renderers]
+  .sort((a, b) => rendererCost(a, {}, false).figureTokens - rendererCost(b, {}, false).figureTokens)
+  .map((spec) => `${spec.label} ≈ ${rendererCost(spec, {}, false).figureTokens}`)
+  .join('，')
+
 const selectionRows = renderers
-  .map((spec) => `| ${spec.usage} | ${spec.label} | ${spec.languages.map((l) => `${F}${l}`).join(' / ')} |`)
+  .map((spec) => `| ${spec.when} | ${spec.label} | ${spec.languages.map((l) => `${F}${l}`).join(' / ')} | [${spec.id}.md](references/${spec.id}.md) |`)
   .join('\n')
 
-const navigationRows = renderers
-  .map((spec) => `| ${spec.label} | 阅读 [references/${spec.id}.md](references/${spec.id}.md) |`)
-  .join('\n')
+/**
+ * Per-renderer material that belongs on its own reference page.
+ *
+ * These sections used to sit in SKILL.md, where every reader paid for all eight
+ * renderers whether or not they used them — and the syntax and pitfall sections
+ * were verbatim duplicates of what the reference pages already carried. The
+ * body is read whole, the reference page is read when it is needed, so the
+ * detail belongs here.
+ *
+ * @param {object} spec - the renderer.
+ * @returns {string} extra markdown for that page, or ''.
+ */
+function extraFor(spec) {
+  if (spec.id === 'echarts') {
+    return `
+## 交互模式
+
+需要悬停数值、图例筛选或区间缩放时，用 \`\`\`echarts-interactive 输出 ECharts JSON。使用内联数据，配置不超过 256 KiB、数据总量不超过 10,000 点，不写函数、HTML 提示框或外部资源。提示框使用 richText；需要区间缩放时声明 dataZoom，图例筛选时声明 legend。
+
+交互初始化失败只尝试一次静态降级；降级失败保留源码与错误说明。配置页可关闭交互模式，普通 echarts 不受影响。
+`
+  }
+  if (spec.id === 'svg') {
+    return `
+## 设计系统
+
+选用手写 \`\`\`svg 后遵循当前视觉风格的整图设计规范；画法选择以当前绘图偏好与用户要求为准。以下是各风格共用的可读性要求，不额外指定配色、圆角或字号来覆盖当前风格。
+
+- **画布**：\`<svg viewBox="0 0 680 高" width="100%" role="img">\`，左边距 40，卡片间留白充足。
+- **构图**：先确定阅读顺序与主体，再安放标题、分区、说明和图例；不要把所有内容机械地套入相同卡片。
+- **视觉语言**：配色、圆角、边框、连线和字号取当前风格的规则，保持全图一致；参考示例的暖色不是所有风格的强制要求。
+- **连线与标注**：箭头表达真实方向，路径避开文字和节点；标签靠近对应对象，长文手动换行，不重叠、不出界。
+- **字号层级**：标题、分区标题、正文与注释有明确主次，字号随画布比例协调；代码路径可用 \`ui-monospace\`。
+- **无障碍**：每个图带 \`<title>\` 与一句 \`<desc>\`。
+- 布局模式：对照＝两块语义色面板并排；时间线＝竖线＋圆点＋卡片；路线＝阶梯上行；循环＝横链＋虚线回路。
+`
+  }
+  return ''
+}
 
 /**
  * The part-recipe table for the isometric reference page.
@@ -239,89 +282,24 @@ function checklistSection() {
     '',
   ].join('\n')
 }
-/**
- * The visual-style section of the skill.
- *
- * The active style is named in the standing prompt; this lists every style so
- * the model can tell them apart and knows what a hand-written figure must match.
- *
- * @returns {string} the markdown section.
- */
-function styleSection() {
-  const rows = styles
-    .map((style) => '| **' + style.label + '**（' + String.fromCharCode(96) + style.id + String.fromCharCode(96) + '） | ' + style.summary + ' | ' + style.description + ' |')
-    .join('\n')
-  const detail = styles.map((style) => '- **' + style.label + '**：' + style.guidance).join('\n')
-  return [
-    '## 可选视觉风格',
-    '',
-    '风格规定整张图的构图、信息层级、排版、配色与标注，渲染器决定实现方式。**当前风格以文首「当前视觉风格」或提示段「视觉风格」为准**；未指定时采用「' + styles[0].label + '」。下表供比较，不得混用其他风格规则。引擎只应用支持的外观参数；已有手写 SVG 不会自动转换。',
-    '',
-    '| 风格 | 特征 | 适合 |',
-    '| --- | --- | --- |',
-    rows,
-    '',
-    '各风格的整图设计规范：',
-    '',
-    detail,
-    '',
-  ].join('\n')
-}
 writeFileSync(
   join(skillDir, 'SKILL.md'),
   `# 可视化输出
 
-用带语言的代码块输出图，DSH 会把它渲染成真正的图；写错语法不会破坏对话，只会显示一张错误卡片。普通 echarts 保持静态；交互模式按需选择。
+用带语言的代码块输出图，DSH 会把它渲染成真正的图；写错语法不会破坏对话，只会显示一张错误卡片。
+
+**动手前先读你打算用的那一种的参考页**：语法、易错点与完整示例都在那里。本页只讲选型与纪律 —— 把每个渲染器的细节都摊在这里，等于让每次读取都为八种渲染器付费。
 
 ## 选型
 
-| 要表达什么 | 用什么 | 栅栏 |
-| --- | --- | --- |
+| 要表达什么 | 用什么 | 栅栏 | 参考页 |
+| --- | --- | --- | --- |
 ${selectionRows}
-
-## 语法要点
-
-${renderers.map((spec) => `- **${spec.label}**：${spec.syntaxHint}`).join('\n')}
-
-## 常见语法错误
-
-写之前先排除这几条；它们占已知失败的大多数，且都会让整张图变成错误卡片。
-
-${renderers
-  .map(
-    (spec) =>
-      `- **${spec.label}**\n${pitfallsOf(spec)
-        .map((line) => `  - ${line}`)
-        .join('\n')}`,
-  )
-  .join('\n')}
-
-每个渲染器的完整示例见下方导航。
-
-<!-- ECHARTS_INTERACTIVE:BEGIN -->
-## ECharts 交互模式
-
-需要悬停数值、图例筛选或区间缩放时，用 \`\`\`echarts-interactive 输出 ECharts JSON。使用内联数据，配置不超过 256 KiB、数据总量不超过 10,000 点，不写函数、HTML 提示框或外部资源。提示框使用 richText；需要区间缩放时声明 dataZoom，图例筛选时声明 legend。
-
-交互初始化失败只尝试一次静态降级；降级失败保留源码与错误说明。配置页可关闭交互模式，普通 echarts 不受影响。
-<!-- ECHARTS_INTERACTIVE:END -->
-
-## 手写 SVG 设计系统
-
-选用手写 \`\`\`svg 后遵循当前视觉风格的整图设计规范；画法选择以当前绘图偏好与用户要求为准。以下是各风格共用的可读性要求，不额外指定配色、圆角或字号来覆盖当前风格。
-
-- **画布**：\`<svg viewBox="0 0 680 高" width="100%" role="img">\`，左边距 40，卡片间留白充足。
-- **构图**：先确定阅读顺序与主体，再安放标题、分区、说明和图例；不要把所有内容机械地套入相同卡片。
-- **视觉语言**：配色、圆角、边框、连线和字号取当前风格的规则，保持全图一致；参考示例的暖色不是所有风格的强制要求。
-- **连线与标注**：箭头表达真实方向，路径避开文字和节点；标签靠近对应对象，长文手动换行，不重叠、不出界。
-- **字号层级**：标题、分区标题、正文与注释有明确主次，字号随画布比例协调；代码路径可用 \`ui-monospace\`。
-- **无障碍**：每个图带 \`<title>\` 与一句 \`<desc>\`。
-- 布局模式：对照＝两块语义色面板并排；时间线＝竖线＋圆点＋卡片；路线＝阶梯上行；循环＝横链＋虚线回路。
 
 ## 成本纪律
 
 - 图由浏览器渲染，**渲染本身不花 token**；花 token 的是你写进对话的源码，而它会留在对话里、之后每轮都被重读。
-- 同一份内容**语法越声明式越省**：一张流程图 nomnoml/mermaid ≈ 58 tokens，Graphviz ≈ 93，ECharts ≈ 113，Vega-Lite ≈ 182。优先选够用的最小语法。
+- 同一份内容**语法越声明式越省**。一张典型图的源码代价（估算）：${costRows}。优先选够用的最小语法。
 - **不要重复画同一张图**。
 - 大段 HTML/长文档**写成文件并给出路径**，不要贴进对话（省 92–99% 的上下文）。
 
@@ -329,14 +307,8 @@ ${renderers
 
 - 语法错误会保留原始代码块并显示错误卡片，改对后自动重新渲染。
 - 图上「反馈」按钮把经过截断的源码与诊断记录到本机，并尝试复制诊断；不会自动发给作者或自动修改插件。
-- 交互图表的反馈附带模式、原始失败阶段与降级结果；修正源码后可重新展示。静态错误卡片的「反馈并修复」在自修开关开启时向当前会话排队投递请求，会消耗该会话 token。
-
-## 参考
-
-| 渲染器 | 完整示例与注意事项 |
-| --- | --- |
-${navigationRows}
-` + styleSection() + checklistSection(),
+- 交互图表的反馈附带模式、原始失败阶段与降级结果；修正源码后可重新展示。静态错误卡片的「反馈并修复」会拉起一个新会话去修，本会话不受影响。
+` + checklistSection(),
   'utf8',
 )
 
@@ -378,7 +350,7 @@ ${pitfallsOf(spec)
 ${F}${spec.languages[0]}
 ${spec.sample}
 ${F}
-` + (spec.id === 'isometric' ? partSection() : ''),
+` + extraFor(spec) + (spec.id === 'isometric' ? partSection() : ''),
     'utf8',
   )
 }

@@ -208,7 +208,11 @@ it('简洁风规范覆盖整图，电气配色不强加给其他主题，公共 
   assert.match(body, /仅在电气内容中采用/)
   assert.match(body, /其他内容不得机械套用/)
   assert.match(body, /参考页的示例仅供语法参考，不得覆盖当前风格/)
-  const common = body.split('## 手写 SVG 设计系统')[1].split('\n## ')[0]
+  // 共用 SVG 规则现在在 svg 参考页里（正文只留选型与纪律），所以去那里查：
+  // 规则本身不得写死配色/圆角，否则会覆盖用户选的风格。
+  const svgPage = readFileSync(new URL('../skill/references/svg.md', import.meta.url), 'utf8')
+  const common = svgPage.split('## 设计系统')[1].split('\n## ')[0]
+  assert.ok(common.length > 0, 'svg 参考页应当有设计系统一节')
   assert.doesNotMatch(common, /#F1EFE8|rx="8"|边框.*0\.5/)
   assert.doesNotMatch(body, /颜色只表示链路类型/)
   assert.match(body, /已有手写 SVG 不会自动改写/)

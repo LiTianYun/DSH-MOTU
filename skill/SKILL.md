@@ -1,89 +1,26 @@
 # 可视化输出
 
-用带语言的代码块输出图，DSH 会把它渲染成真正的图；写错语法不会破坏对话，只会显示一张错误卡片。普通 echarts 保持静态；交互模式按需选择。
+用带语言的代码块输出图，DSH 会把它渲染成真正的图；写错语法不会破坏对话，只会显示一张错误卡片。
+
+**动手前先读你打算用的那一种的参考页**：语法、易错点与完整示例都在那里。本页只讲选型与纪律 —— 把每个渲染器的细节都摊在这里，等于让每次读取都为八种渲染器付费。
 
 ## 选型
 
-| 要表达什么 | 用什么 | 栅栏 |
-| --- | --- | --- |
-| 流程、时序、状态、类、甘特、饼图、脑图 —— 覆盖面最广，拿不准时用它 | Mermaid 图表 | ```mermaid |
-| 流程、依赖、架构分层 —— 分层布局最稳，集群（subgraph cluster）是它的强项 | Graphviz（dot） | ```dot / ```graphviz |
-| 极简框线图 —— 语法最短，适合小而清楚的流程 | nomnoml | ```nomnoml |
-| 数量、占比、趋势、对比 —— 数据图表首选，中文排版友好 | ECharts | ```echarts / ```echarts-interactive |
-| 分层、分面、多视图统计图 —— 表达力最强，适合复杂的数据关系 | Vega-Lite | ```vega-lite / ```vegalite / ```vega |
-| 等距剖面 —— 要转动、缩放、切开看内部，或同一结构要反复改角度改配色时用它（一次性插图手写 SVG 更灵活） | 等距展示 | ```isometric / ```isometric-interactive |
-| 体素方块模型 —— 用方块表达体量、密度与"切掉一角看内部"（ASCII 图层直接摆方块，最省 token） | 体素模型 | ```voxel / ```voxel-interactive |
-| 概念对照、时间线、成长路线、架构分工、一次性的空间或剖面插图 —— 模型按设计系统手写 SVG，布局与语义配色完全自由，最出彩（参照应用的真正用法） | SVG 图示（手写） | ```svg |
-
-## 语法要点
-
-- **Mermaid 图表**：首行必须是图表类型关键字（flowchart TD / sequenceDiagram / stateDiagram-v2 / gantt / pie / mindmap）
-- **Graphviz（dot）**：digraph G { rankdir=LR; A -> B; }；中文标签必须写 fontname="Microsoft YaHei"，分层用 subgraph cluster_x { label="…" }
-- **nomnoml**：[A] -> [B]；边标签写在端点和箭头之间：[A] 是 -> [B]；决策就是普通方框 [命中]，不要写 <choice>（尖括号会被当文本渲染）；中文必须加 #padding: 22 补偿它按西文字宽估算
-- **ECharts**：JSON 配置：{ "xAxis": { "type": "category", "data": [...] }, "series": [{ "type": "bar", "data": [...] }] }；饼图用 "type": "pie"
-- **Vega-Lite**：Vega-Lite v6 JSON：{ "$schema": "…/v6.json", "data": { "values": [...] }, "mark": "bar", "encoding": { … } }；叠加用 "layer": [ … ]
-- **等距展示**：JSON：{ "objects": [{ "type": "shell", "r": 1.3, "thickness": 0.16, "color": "amber" }] }；图元 box/ball/shell/cylinder/ring，或直接用零件配方 { "type": "part", "part": "stack", "layers": 3 }（base/stack/rack/grid/tower/dial/rail/post）；颜色用语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb
-- **体素模型**：JSON：{ "grid": 17, "palette": { "#": "amber", "o": "purple" }, "shapes": [{ "shape": "shell", "r": 7, "thickness": 1.6, "fill": "#" }] }；shapes 可用 shell/ball/box/cluster/collapse，或直接写 "layers": ["#####\n#...#"]（每层一段，z 从下往上）；颜色用语义令牌或 #rrggbb
-- **SVG 图示（手写）**：直接写 <svg viewBox="0 0 680 XXX" width="100%" role="img">…</svg>；必须带 <title> 与 <desc>；整图构图、排版、配色与标注遵循当前视觉风格，参考页示例不覆盖该选择
-
-## 常见语法错误
-
-写之前先排除这几条；它们占已知失败的大多数，且都会让整张图变成错误卡片。
-
-- **Mermaid 图表**
-  - 节点文字含括号、方括号或引号时**整段加引号**：写 `A["文字（含括号）"]`，不要写 `A[文字（含括号）]`。
-  - 形状括号必须成对：`[]` 矩形、`()` 圆角、`[()]` 圆柱、`{}` 菱形。**只有旗形是左开口**的 `id>文字]` —— 把方括号塞进旗形（`id>["文字"]`）会直接 `Parse error`；要方框就写 `id["文字"]`。
-  - 子图标题写成 `subgraph 名称["标题"]`；`end` 必须单独一行。
-- **Graphviz（dot）**
-  - 属性写成 `key="value"`；含空格或标点的标签必须加引号（`label="含 空格"`）。
-  - 节点名不要用 `graph` / `node` / `edge` 这些保留字。
-  - 每条语句以 `;` 结尾，整个图包在一对花括号里。
-- **nomnoml**
-  - 框是 `[文字]`、箭头是 `->`；连线标签写在箭头**前**：`[A] 是 -> [B]`。
-  - 没有 `<choice>` 这类语法，尖括号会被当普通文本；判定就画普通方框。
-  - 中文要加 `#padding: 22`，否则按西文字宽估算会溢出。
-- **ECharts**
-  - JSON 里不能有注释或尾随逗号；`series` 每项必须带 `type`，数据放在 `series.data`。
-- **Vega-Lite**
-  - 必须有 `mark` 与 `data`；字段引用写在 `encoding.x.field`。
-  - 这是 Vega-Lite，不是 Vega：不要写 `signals` / `marks` 这类运行时语法；叠加用 `layer`。
-- **等距展示**
-  - kind 只能是 solid 或 voxel；两种都是 JSON，不能有注释或尾随逗号。
-  - 颜色写语义令牌（amber/blue/green/purple/red/ink/muted）或 #rrggbb；voxel 的 palette 键必须是单个字符。
-  - voxel 的 layers 与 shapes 二选一；用 shapes 时只有会放置体素的形状需要 fill（collapse 是挖空，不需要）。
-  - 不要自己算缩放与取景 —— 引擎会自动把场景放进画布，你只描述有什么、在哪、什么颜色。
-  - 需要转动或切开看内部时用 ```isometric-interactive；静态图用 ```isometric。
-- **体素模型**
-  - JSON：{ "grid": 17, "palette": { "#": "amber", "o": "purple" }, "shapes": [{ "shape": "shell", "r": 7, "thickness": 1.6, "fill": "#" }] }；shapes 可用 shell/ball/box/cluster/collapse，或直接写 "layers": ["#####\n#...#"]（每层一段，z 从下往上）；颜色用语义令牌或 #rrggbb
-- **SVG 图示（手写）**
-  - 手写 SVG 没有语法可错，但必须带 `<title>` 与 `<desc>`；`viewBox` 用 `0 0 680 高`（高 ≤ 400），否则会被画布裁切。
-
-每个渲染器的完整示例见下方导航。
-
-<!-- ECHARTS_INTERACTIVE:BEGIN -->
-## ECharts 交互模式
-
-需要悬停数值、图例筛选或区间缩放时，用 ```echarts-interactive 输出 ECharts JSON。使用内联数据，配置不超过 256 KiB、数据总量不超过 10,000 点，不写函数、HTML 提示框或外部资源。提示框使用 richText；需要区间缩放时声明 dataZoom，图例筛选时声明 legend。
-
-交互初始化失败只尝试一次静态降级；降级失败保留源码与错误说明。配置页可关闭交互模式，普通 echarts 不受影响。
-<!-- ECHARTS_INTERACTIVE:END -->
-
-## 手写 SVG 设计系统
-
-选用手写 ```svg 后遵循当前视觉风格的整图设计规范；画法选择以当前绘图偏好与用户要求为准。以下是各风格共用的可读性要求，不额外指定配色、圆角或字号来覆盖当前风格。
-
-- **画布**：`<svg viewBox="0 0 680 高" width="100%" role="img">`，左边距 40，卡片间留白充足。
-- **构图**：先确定阅读顺序与主体，再安放标题、分区、说明和图例；不要把所有内容机械地套入相同卡片。
-- **视觉语言**：配色、圆角、边框、连线和字号取当前风格的规则，保持全图一致；参考示例的暖色不是所有风格的强制要求。
-- **连线与标注**：箭头表达真实方向，路径避开文字和节点；标签靠近对应对象，长文手动换行，不重叠、不出界。
-- **字号层级**：标题、分区标题、正文与注释有明确主次，字号随画布比例协调；代码路径可用 `ui-monospace`。
-- **无障碍**：每个图带 `<title>` 与一句 `<desc>`。
-- 布局模式：对照＝两块语义色面板并排；时间线＝竖线＋圆点＋卡片；路线＝阶梯上行；循环＝横链＋虚线回路。
+| 要表达什么 | 用什么 | 栅栏 | 参考页 |
+| --- | --- | --- | --- |
+| 流程、时序、状态、甘特、饼图、脑图 | Mermaid 图表 | ```mermaid | [mermaid.md](references/mermaid.md) |
+| 结构关系、依赖、架构分层 | Graphviz（dot） | ```dot / ```graphviz | [graphviz.md](references/graphviz.md) |
+| 小而清楚的流程 | nomnoml | ```nomnoml | [nomnoml.md](references/nomnoml.md) |
+| 数据图表 | ECharts | ```echarts / ```echarts-interactive | [echarts.md](references/echarts.md) |
+| 复杂统计图 | Vega-Lite | ```vega-lite / ```vegalite / ```vega | [vega-lite.md](references/vega-lite.md) |
+| 需要交互的空间图、要反复改角度的剖面 | 等距展示 | ```isometric / ```isometric-interactive | [isometric.md](references/isometric.md) |
+| 体素模型、方块化体量、方块地形 | 体素模型 | ```voxel / ```voxel-interactive | [voxel.md](references/voxel.md) |
+| 语义对照、时间线、路线图、概念架构、一次性插图 | SVG 图示（手写） | ```svg | [svg.md](references/svg.md) |
 
 ## 成本纪律
 
 - 图由浏览器渲染，**渲染本身不花 token**；花 token 的是你写进对话的源码，而它会留在对话里、之后每轮都被重读。
-- 同一份内容**语法越声明式越省**：一张流程图 nomnoml/mermaid ≈ 58 tokens，Graphviz ≈ 93，ECharts ≈ 113，Vega-Lite ≈ 182。优先选够用的最小语法。
+- 同一份内容**语法越声明式越省**。一张典型图的源码代价（估算）：Mermaid 图表 ≈ 40，nomnoml ≈ 54，Graphviz（dot） ≈ 68，ECharts ≈ 86，Vega-Lite ≈ 146，体素模型 ≈ 148，等距展示 ≈ 232，SVG 图示（手写） ≈ 3514。优先选够用的最小语法。
 - **不要重复画同一张图**。
 - 大段 HTML/长文档**写成文件并给出路径**，不要贴进对话（省 92–99% 的上下文）。
 
@@ -91,33 +28,7 @@
 
 - 语法错误会保留原始代码块并显示错误卡片，改对后自动重新渲染。
 - 图上「反馈」按钮把经过截断的源码与诊断记录到本机，并尝试复制诊断；不会自动发给作者或自动修改插件。
-- 交互图表的反馈附带模式、原始失败阶段与降级结果；修正源码后可重新展示。静态错误卡片的「反馈并修复」在自修开关开启时向当前会话排队投递请求，会消耗该会话 token。
-
-## 参考
-
-| 渲染器 | 完整示例与注意事项 |
-| --- | --- |
-| Mermaid 图表 | 阅读 [references/mermaid.md](references/mermaid.md) |
-| Graphviz（dot） | 阅读 [references/graphviz.md](references/graphviz.md) |
-| nomnoml | 阅读 [references/nomnoml.md](references/nomnoml.md) |
-| ECharts | 阅读 [references/echarts.md](references/echarts.md) |
-| Vega-Lite | 阅读 [references/vega-lite.md](references/vega-lite.md) |
-| 等距展示 | 阅读 [references/isometric.md](references/isometric.md) |
-| 体素模型 | 阅读 [references/voxel.md](references/voxel.md) |
-| SVG 图示（手写） | 阅读 [references/svg.md](references/svg.md) |
-## 可选视觉风格
-
-风格规定整张图的构图、信息层级、排版、配色与标注，渲染器决定实现方式。**当前风格以文首「当前视觉风格」或提示段「视觉风格」为准**；未指定时采用「墨图默认」。下表供比较，不得混用其他风格规则。引擎只应用支持的外观参数；已有手写 SVG 不会自动转换。
-
-| 风格 | 特征 | 适合 |
-| --- | --- | --- |
-| **墨图默认**（`motu`） | 暖中性 · 多语义色 | 温和的纸感底色，轻量分区与语义配色。用清楚的阅读顺序组织讲解、对照与路线。 |
-| **简洁风**（`blueprint`） | 规整分区 · 清晰层级 · 克制标注 | 冷灰蓝底色，规整留白，清楚的主副标题与图例。用克制的排版讲清内容，适用于架构、流程、原理与剖面。 |
-
-各风格的整图设计规范：
-
-- **墨图默认**：整图采用温和、清楚的说明式排版。先确定阅读顺序，再按内容选对照、时间线、分层或剖面构图；标题、主体、说明与图例层级分明，对齐一致，分区之间留白大于区内间距，避免每项都套卡片。暖中性纸感底（#F1EFE8 / #FFFFFF），颜色即含义：蓝 #185FA5 新增或目标、绿 #3B6D11 推荐、红 #A32D2D 问题、琥珀 #BA7517 部分、紫 #534AB7 进阶、暖灰 #B4B2A9 现状。卡片 rx=8、边框 0.5px、开放箭头；正文约12px、卡题13px/500、节题14px，整图标题可更大。连线避开文字，长标签换行，图例靠近主体。适用于流程、架构、原理说明与插图，不改变数据和关系。
-- **简洁风**：这是整张生成图的设计语言，适用于架构、流程、原理说明、对照与 SVG 剖面插图，不是接线图模板，也不只是换色。先规划“标题与摘要 → 分区主体 → 说明或图例”的阅读顺序；按内容选分层、并排对照、流程或剖面构图，统一网格对齐，分区可用简短编号与小标题，外边距和区间留白充足，避免密集套框。冷灰蓝页面 #F4F6F9、白色内容面 #FFFFFF，正文 #22303F、次要 #5D6B7A、1px 边框 #DBE3EB、圆角约10px。字号随画布同比调整：整图标题约24px/600、分区或主标约19px/600、正文与副标约12.5–14px；标题、主体、说明有明确主次。颜色少而有语义，蓝 #1F6FB2 作重点、红 #C8382B 作警示或另一类关系，必要时为类别补色并配图例；仅在电气内容中采用红色电力箭头、蓝色双向数据，其他内容不得机械套用。关系连线优先正交并避开节点和文字，标注靠近对象、长文换行，插图用引线和图例解释内部结构；统计图保留正确坐标与数据编码。生成前检查文字不溢出、连线不穿字、图例不遮主体、画布不裁切。保持专业、克制、易读，不添加无意义装饰，不改变事实关系。
+- 交互图表的反馈附带模式、原始失败阶段与降级结果；修正源码后可重新展示。静态错误卡片的「反馈并修复」会拉起一个新会话去修，本会话不受影响。
 ## 出图前的自检
 
 每条都对应一次真实返工（前几条借鉴自 Anatomy 的工艺笔记，那里每条都记着是哪张图被谁驳回的）。
