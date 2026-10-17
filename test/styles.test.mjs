@@ -245,3 +245,60 @@ it('目录下发成本，设置页把它渲染成两行数字', (t) => {
   assert.ok(String(tree.props.title).includes('1.5 字符/token'), '提示里要写明估算口径')
   assert.ok(String(tree.props.title).includes('13000'), '提示里要给出精确字符数')
 })
+
+it('设置页面板能整体渲染，且开关上带得出价签', (t) => {
+  // 面板是全插件最薄的一块：它只在浏览器里跑，单测此前只覆盖到组件函数之外。
+  // 这里用"就绪态"的 React 桩把整个面板执行一遍 —— 任何拼写错误、拿错字段、
+  // 或者忘了判空，都会在这一步抛出来，而不是等用户打开设置页才发现。
+  const dom = setupDom({ scripts: true })
+  let client
+  const ready = {
+    status: 'ready',
+    specs: renderers.map((spec) => ({
+      ...spec,
+      enabled: true,
+      settings: spec.defaults,
+      cost: { standingChars: 41, standingTokens: 19, figureChars: 122, figureTokens: 40, figureBasis: '按该渲染器的示例' },
+    })),
+    styles: styles.map((style) => styleEntry(style, style.id)),
+    costs: {
+      promptSection: { chars: 923, tokens: 449 },
+      skill: { summaryChars: 165, summaryTokens: 91, bodyChars: 7265, bodyTokens: 3188 },
+      style: { currentTokens: 0, currentChars: 0, nonDefaultTokens: 47 },
+      svgPreference: { engine: 111, svg: 3514 },
+    },
+    switches: { autoRender: true, selfRepair: true, repairInNewSession: true, promptSection: true, skill: true, interactive: true, svgPreference: 50 },
+    error: '',
+    busy: '',
+    message: '',
+  }
+  const react = {
+    createElement: (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat().filter((child) => child !== null && child !== undefined && child !== false) }),
+    useState: () => [ready, () => {}],
+    useRef: (value) => ({ current: value }),
+    useEffect: () => {},
+    useCallback: (fn) => fn,
+    Fragment: 'fragment',
+  }
+  dom.window.__ModuleLoader__ = { load({ factory }) { client = factory((name) => {
+    if (name === 'react') return react
+    throw new Error('unexpected module: ' + name)
+  }) } }
+  dom.window.eval(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'))
+  t.after(() => dom.window.close())
+
+  const tree = client.internals.CapabilityPanel()
+  assert.ok(tree !== null && typeof tree === 'object', '面板应当返回一棵树')
+
+  // 整棵树序列化后断言：面板是 React 元素树，逐节点收集字符串容易漏（我第一版
+  // 就漏了开关上的价签），序列化不会漏。
+  const serialized = JSON.stringify(tree)
+  assert.ok(serialized.includes('449'), '提示段开关应当显示常驻 token')
+  assert.ok(serialized.includes('3188'), '技能开关应当显示正文 token')
+  assert.ok(serialized.includes('47'), '风格说明应当提到非默认风格的常驻代价')
+  assert.ok(serialized.includes('3514'), '绘图方式选项要有每图代价')
+  assert.ok(serialized.includes('vk-cost-tag'), '价签要有自己的样式类')
+  // 价签数量：3 个绘图方式 + 提示段 + 技能
+  const tagCount = (serialized.match(/vk-cost-tag/g) ?? []).length
+  assert.ok(tagCount >= 5, `价签应当至少 5 个（3 个绘图方式 + 提示段 + 技能），实际 ${tagCount}`)
+})
