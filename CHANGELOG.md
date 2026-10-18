@@ -2,6 +2,56 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.14.1] — 2026-10-18
+
+**修复：文档块里引用 ```metrics 示例时，被内容嗅探抢走并报 JSON 解析错。**
+
+### 现场
+
+回复里用四反引号包了一段 ```metrics 示例（讲怎么用指标卡）。那个外层块没有语言标签，
+于是走进内容嗅探；metrics 的 `detect` 当时写的是：
+
+```js
+detect: (source) => /"items"\s*:\s*\[/.test(source) && ...
+```
+
+**全串搜索、不锚定** —— 文档块的内容里当然含 `"items":[`，于是被抢走，再拿去 JSON.parse，
+报 `Unexpected token '`'`，弹出一张错误卡。
+
+### 根因：漏了一条家规
+
+其余七个渲染器的 detect **都锚定在首字符**：
+
+```js
+isometric / voxel : source.trim().startsWith('{') && /"kind"\s*:\s*"solid"/
+echarts           : if (!trimmed.startsWith('{')) return false
+vega-lite         : if (!trimmed.startsWith('{')) return false
+graphviz          : /^\s*(?:strict\s+)?(?:di)?graph\b/
+nomnoml           : /^(?:\s*#[^\n]*\n)*\s*\[/
+svg               : /^\s*<svg[\s>]/i
+```
+
+只有 metrics 这一条（昨天 0.14.0 新加的）是全串搜索。这不是"设计取舍"，是漏写。
+
+### 修法
+
+1. 锚定：`source.trim().startsWith('{')`，与其余七个一致；
+2. 顺手收紧：`items` 里必须真有 `label` 才算指标卡，免得抢走"数据键恰好叫 items"的图表；
+3. **通用回归**（新增 `test/routing.test.mjs`）：遍历**全部**渲染器，把每种的示例包进四反引号
+   文档块，断言**谁也不许认领它**。以后再加渲染器忘了锚定，这条会直接抓住 —— 不是只钉 metrics。
+
+### 写这条测试时我自己踩的两个坑
+
+- manifest 的 `sample` 大多**自带栅栏**（参考页要展示完整示例），直接包进文档块会变成双重嵌套，
+  测不到真东西 —— 得先剥掉外层栅栏；
+- `routeBlock` 默认用全局目录，测试环境里它是 `null`，什么都不认领 —— 要用
+  `client.internals.setCatalogue(...)` 装一份。
+
+另外把期望值也修正了：等距/体素按 `kind` 认内容，示例里没有 `kind`（它们靠语言标签路由），
+所以契约写成"**贴自己的标签必须路由到自己；裸着写绝不被别人抢走**"，而不是"裸着必须被自己认领"。
+
+227 单测（新增 5）。
+
 ## [0.14.0] — 2026-10-18
 
 **新增第九种渲染器：指标卡（```metrics）** —— 一排读数，带阈值色与可选迷你趋势线。
