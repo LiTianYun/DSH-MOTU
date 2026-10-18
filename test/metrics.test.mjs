@@ -178,3 +178,17 @@ it('manifest 条目齐全：栅栏、家族、限额、字体策略、示例', (
   // 示例必须能渲染 —— 它是错误卡片与预览的输入
   assert.doesNotThrow(() => JSON.parse(spec.sample))
 })
+
+it('自绘图落在画布预算内 —— 超高会被客户端整体缩放，字就变小了', async (t) => {
+  const { client } = loadClient(t)
+  // 客户端画布默认 maxHeight 360、内边距 16 → 可用 328。渲染器应当在预算内排版，
+  // 而不是等客户端把整张图缩到 78%（一屏 7 行的矩阵就是这么变难看的）。
+  const budget = 360 - 2 * 16
+  const heightOf = (markup) => Number(markup.match(/viewBox="0 0 680 (\d+)"/)[1])
+  assert.ok(heightOf((await draw(client, SAMPLE)).markup) <= budget, '示例必须在预算内')
+  for (const count of [1, 2, 4, 6, 8, 12]) {
+    const items = Array.from({ length: count }, (unused, index) => ({ label: `读数 ${index}`, value: String(index), tone: 'ok' }))
+    const height = heightOf((await draw(client, { items })).markup)
+    assert.ok(height <= budget, `${count} 项时高 ${height}，超出预算 ${budget}（会被缩放）`)
+  }
+})

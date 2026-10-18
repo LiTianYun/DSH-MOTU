@@ -172,3 +172,16 @@ it('manifest 条目齐全', () => {
   assert.ok(spec.promptNote.length > 0 && spec.promptNote.length <= 40, '常驻补句要短 —— 提示段预算很紧')
   assert.doesNotThrow(() => JSON.parse(spec.sample))
 })
+
+it('自绘图落在画布预算内 —— 超高会被客户端整体缩放，字就变小了', async (t) => {
+  const { client } = loadClient(t)
+  // 一列装不下就换两列、三列，行数减半 —— 而不是让客户端把整张图缩小。
+  const budget = 360 - 2 * 16
+  const heightOf = (markup) => Number(markup.match(/viewBox="0 0 680 (\d+)"/)[1])
+  assert.ok(heightOf((await draw(client, SAMPLE)).markup) <= budget, '示例必须在预算内')
+  for (const count of [1, 3, 6, 7, 10, 16]) {
+    const cases = Array.from({ length: count }, (unused, index) => ({ name: `用例 ${index}`, status: 'pass', ms: index * 10, note: `备注 ${index}` }))
+    const height = heightOf((await draw(client, { cases })).markup)
+    assert.ok(height <= budget, `${count} 条时高 ${height}，超出预算 ${budget}（会被缩放）`)
+  }
+})
