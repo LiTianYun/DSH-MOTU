@@ -1,0 +1,51 @@
+<svg viewBox="0 0 680 376" width="680" role="img" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif" style="" height="376">
+<title>连板前自测</title>
+<desc>用例结果：6 项 · 2 通过 / 1 失败 / 1 警告 / 1 跳过 / 1 进行中</desc>
+<rect width="680" height="376" fill="#FFFFFF"></rect>
+<text x="24" y="38" font-size="14" font-weight="600" fill="#2C2C2A">连板前自测</text>
+<circle cx="33.0" cy="64.0" r="9" fill="#3B6D11" opacity="0.14"></circle>
+<text x="33.0" y="68.0" font-size="11" font-weight="600" fill="#3B6D11" text-anchor="middle">✓</text>
+<text x="52.0" y="68.0" font-size="12.5" fill="#2C2C2A">serial-cmd.py 查 uname</text>
+<text x="656" y="68.0" font-size="11.5" fill="#5F5E5A" text-anchor="end">820 ms</text>
+<text x="52.0" y="84.0" font-size="11" fill="#5F5E5A">115200 8N1</text>
+<line x1="24" y1="92.0" x2="656" y2="92.0" stroke="#B4B2A9" stroke-width="0.5"></line>
+<circle cx="33.0" cy="108.0" r="9" fill="#A32D2D" opacity="0.14"></circle>
+<text x="33.0" y="112.0" font-size="11" font-weight="600" fill="#A32D2D" text-anchor="middle">✗</text>
+<text x="52.0" y="112.0" font-size="12.5" fill="#2C2C2A">i2cdetect 查 bq28z620</text>
+<text x="656" y="112.0" font-size="11.5" fill="#5F5E5A" text-anchor="end">3010 ms</text>
+<text x="52.0" y="128.0" font-size="11" fill="#5F5E5A">地址 0x0b 无应答</text>
+<line x1="24" y1="136.0" x2="656" y2="136.0" stroke="#B4B2A9" stroke-width="0.5"></line>
+<circle cx="33.0" cy="152.0" r="9" fill="#BA7517" opacity="0.14"></circle>
+<text x="33.0" y="156.0" font-size="11" font-weight="600" fill="#BA7517" text-anchor="middle">!</text>
+<text x="52.0" y="156.0" font-size="12.5" fill="#2C2C2A">iperf3 打流</text>
+<text x="656" y="156.0" font-size="11.5" fill="#5F5E5A" text-anchor="end">10050 ms</text>
+<text x="52.0" y="172.0" font-size="11" fill="#5F5E5A">丢包 0.6%</text>
+<line x1="24" y1="180.0" x2="656" y2="180.0" stroke="#B4B2A9" stroke-width="0.5"></line>
+<circle cx="33.0" cy="196.0" r="9" fill="#5F5E5A" opacity="0.14"></circle>
+<text x="33.0" y="200.0" font-size="11" font-weight="600" fill="#5F5E5A" text-anchor="middle">○</text>
+<text x="52.0" y="200.0" font-size="12.5" fill="#2C2C2A">tio 抓 U-Boot 日志</text>
+<text x="656" y="200.0" font-size="11.5" fill="#5F5E5A" text-anchor="end">—</text>
+<text x="52.0" y="216.0" font-size="11" fill="#5F5E5A">未插板</text>
+<line x1="24" y1="224.0" x2="656" y2="224.0" stroke="#B4B2A9" stroke-width="0.5"></line>
+<circle cx="33.0" cy="240.0" r="9" fill="#3B6D11" opacity="0.14"></circle>
+<text x="33.0" y="244.0" font-size="11" font-weight="600" fill="#3B6D11" text-anchor="middle">✓</text>
+<text x="52.0" y="244.0" font-size="12.5" fill="#2C2C2A">烧录校验</text>
+<text x="656" y="244.0" font-size="11.5" fill="#5F5E5A" text-anchor="end">4200 ms</text>
+<line x1="24" y1="268.0" x2="656" y2="268.0" stroke="#B4B2A9" stroke-width="0.5"></line>
+<circle cx="33.0" cy="284.0" r="9" fill="#185FA5" opacity="0.14"></circle>
+<text x="33.0" y="288.0" font-size="11" font-weight="600" fill="#185FA5" text-anchor="middle">●</text>
+<text x="52.0" y="288.0" font-size="12.5" fill="#2C2C2A">RTC 走时</text>
+<text x="656" y="288.0" font-size="11.5" fill="#5F5E5A" text-anchor="end">—</text>
+<line x1="24" y1="320.0" x2="656" y2="320.0" stroke="#B4B2A9" stroke-width="0.5"></line>
+<text x="24" y="336.0" font-size="11.5" font-weight="600" fill="#2C2C2A">6 项</text>
+<text x="58.1" y="336.0" font-size="11.5" fill="#5F5E5A">·</text>
+<text x="70.2" y="336.0" font-size="11.5" fill="#3B6D11">2 通过</text>
+<text x="111.8" y="336.0" font-size="11.5" fill="#5F5E5A">/</text>
+<text x="121.8" y="336.0" font-size="11.5" fill="#A32D2D">1 失败</text>
+<text x="163.5" y="336.0" font-size="11.5" fill="#5F5E5A">/</text>
+<text x="173.5" y="336.0" font-size="11.5" fill="#BA7517">1 警告</text>
+<text x="215.1" y="336.0" font-size="11.5" fill="#5F5E5A">/</text>
+<text x="225.1" y="336.0" font-size="11.5" fill="#5F5E5A">1 跳过</text>
+<text x="266.8" y="336.0" font-size="11.5" fill="#5F5E5A">/</text>
+<text x="276.8" y="336.0" font-size="11.5" fill="#185FA5">1 进行中</text>
+</svg>

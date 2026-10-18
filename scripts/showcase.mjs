@@ -26,6 +26,23 @@ const outDir = join(root, 'preview', 'showcase')
 /** 展示样例：语言、渲染器、说明、源码。 */
 const examples = [
   {
+    id: 'matrix-cases',
+    renderer: 'matrix',
+    title: '用例矩阵 · 状态与自动汇总',
+    language: 'matrix',
+    source: `{
+  "title": "连板前自测",
+  "cases": [
+    { "name": "serial-cmd.py 查 uname", "status": "pass", "ms": 820, "note": "115200 8N1" },
+    { "name": "i2cdetect 查 bq28z620", "status": "fail", "ms": 3010, "note": "地址 0x0b 无应答" },
+    { "name": "iperf3 打流", "status": "warn", "ms": 10050, "note": "丢包 0.6%" },
+    { "name": "tio 抓 U-Boot 日志", "status": "skip", "ms": null, "note": "未插板" },
+    { "name": "烧录校验", "status": "pass", "ms": 4200 },
+    { "name": "RTC 走时", "status": "running" }
+  ]
+}`,
+  },
+  {
     id: 'metrics-readings',
     renderer: 'metrics',
     title: '指标卡 · 一排读数带阈值与趋势',

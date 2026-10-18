@@ -1,5 +1,11 @@
 [
   {
+    "id": "matrix-cases",
+    "renderer": "matrix",
+    "title": "用例矩阵 · 状态与自动汇总",
+    "size": "680×376"
+  },
+  {
     "id": "metrics-readings",
     "renderer": "metrics",
     "title": "指标卡 · 一排读数带阈值与趋势",
