@@ -185,3 +185,37 @@ it('自绘图落在画布预算内 —— 超高会被客户端整体缩放，�
     assert.ok(height <= budget, `${count} 条时高 ${height}，超出预算 ${budget}（会被缩放）`)
   }
 })
+
+it('单列时是真表格：有表头，状态独立成列且胶囊带文字', async (t) => {
+  const { client } = loadClient(t)
+  const { markup } = await draw(client, SAMPLE)
+  for (const head of ['状态', '用例', '耗时', '备注']) {
+    assert.ok(markup.includes(`>${head}</text>`), `表头缺「${head}」`)
+  }
+  // 胶囊里带文字：字形要记含义，文字不用
+  for (const label of ['通过', '失败', '警告', '跳过', '进行中']) {
+    assert.match(markup, new RegExp(`[✓✗!○●] ${label}`), `胶囊应当写「${label}」而不只是字形`)
+  }
+})
+
+it('表头只在单列出现；多列是紧凑清单，不塞表头', async (t) => {
+  const { client } = loadClient(t)
+  const cases = Array.from({ length: 12 }, (unused, index) => ({ name: `用例 ${index}`, status: 'pass', note: `备注 ${index}` }))
+  const many = await draw(client, { cases })
+  assert.ok(!many.markup.includes('>状态</text>'), '多列时不该有表头（列是并列清单）')
+  assert.match(many.markup, /·/, '多列时仍要有汇总')
+})
+
+it('四列从左到右不重叠：状态 < 用例 < 耗时 < 备注', async (t) => {
+  const { client } = loadClient(t)
+  const { markup } = await draw(client, SAMPLE)
+  const xOf = (text) => {
+    const m = markup.match(new RegExp(`<text x="([\\d.]+)"[^>]*>${text}</text>`))
+    return m === null ? null : Number(m[1])
+  }
+  const status = xOf('状态')
+  const name = xOf('用例')
+  const note = xOf('备注')
+  assert.ok(status !== null && name !== null && note !== null, '三个表头都要定位到')
+  assert.ok(status < name && name < note, `列顺序不对：状态 ${status} / 用例 ${name} / 备注 ${note}`)
+})
