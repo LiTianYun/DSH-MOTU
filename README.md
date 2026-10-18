@@ -136,6 +136,7 @@
 | **手写 SVG** | ` ```svg ` | 概念对照、时间线、路线图、闭环、架构图 |
 | **等距剖面** | ` ```isometric ` / ` ```isometric-interactive ` | 展示柜式空间图、切开看内部（图元搭场景） |
 | **体素模型** | ` ```voxel ` / ` ```voxel-interactive ` | 方块化体量、体素地形（shapes 或 ASCII 图层） |
+| **指标卡** | ` ```metrics ` | 一排读数：阈值色 + 可选迷你趋势（表格顶替不了时用它） |
 
 没有语言的代码块会按内容识别（首行是 `flowchart TD` 的 mermaid、以 `digraph` 开头的 Graphviz、以 `<svg` 开头的 SVG……）。
 

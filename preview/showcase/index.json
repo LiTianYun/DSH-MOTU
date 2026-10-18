@@ -1,5 +1,11 @@
 [
   {
+    "id": "metrics-readings",
+    "renderer": "metrics",
+    "title": "指标卡 · 一排读数带阈值与趋势",
+    "size": "680×222"
+  },
+  {
     "id": "mermaid-flowchart",
     "renderer": "mermaid",
     "title": "流程图 · 带子图的分层调用",

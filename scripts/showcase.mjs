@@ -26,6 +26,22 @@ const outDir = join(root, 'preview', 'showcase')
 /** 展示样例：语言、渲染器、说明、源码。 */
 const examples = [
   {
+    id: 'metrics-readings',
+    renderer: 'metrics',
+    title: '指标卡 · 一排读数带阈值与趋势',
+    language: 'metrics',
+    source: `{
+  "title": "RK3576 待机功耗",
+  "items": [
+    { "label": "待机电流", "value": "12.4", "unit": "mA", "tone": "ok", "delta": "比上次 +0.8" },
+    { "label": "SoC 温度", "value": "48.2", "unit": "°C", "tone": "warn", "delta": "阈值 55" },
+    { "label": "8821CU RSSI", "value": "-58", "unit": "dBm", "tone": "ok" },
+    { "label": "守护进程", "value": "3/3", "tone": "ok", "delta": "全部在线" }
+  ],
+  "spark": [11.9, 12.1, 12.0, 12.3, 12.2, 12.4]
+}`,
+  },
+  {
     id: 'mermaid-flowchart',
     renderer: 'mermaid',
     title: '流程图 · 带子图的分层调用',

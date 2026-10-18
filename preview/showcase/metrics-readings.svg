@@ -1,0 +1,31 @@
+<svg viewBox="0 0 680 222" width="680" role="img" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif" style="" height="222">
+<title>RK3576 待机功耗</title>
+<desc>一排读数：待机电流 12.4mA、SoC 温度 48.2°C、8821CU RSSI -58dBm、守护进程 3/3</desc>
+<rect width="680" height="222" fill="#FFFFFF"></rect>
+<text x="24" y="38" font-size="14" font-weight="600" fill="#2C2C2A">RK3576 待机功耗</text>
+<rect x="24.0" y="54.0" width="149.0" height="80" rx="8" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="0.5"></rect>
+<rect x="24.0" y="54.0" width="149.0" height="3" rx="1.5" fill="#3B6D11"></rect>
+<text x="38.0" y="82.0" font-size="11.5" fill="#5F5E5A">待机电流</text>
+<text x="38.0" y="110.0" font-size="22" font-weight="600" fill="#3B6D11">12.4</text>
+<text x="90.4" y="110.0" font-size="11.5" fill="#5F5E5A">mA</text>
+<text x="38.0" y="130.0" font-size="11" fill="#5F5E5A">比上次 +0.8</text>
+<rect x="185.0" y="54.0" width="149.0" height="80" rx="8" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="0.5"></rect>
+<rect x="185.0" y="54.0" width="149.0" height="3" rx="1.5" fill="#BA7517"></rect>
+<text x="199.0" y="82.0" font-size="11.5" fill="#5F5E5A">SoC 温度</text>
+<text x="199.0" y="110.0" font-size="22" font-weight="600" fill="#BA7517">48.2</text>
+<text x="251.4" y="110.0" font-size="11.5" fill="#5F5E5A">°C</text>
+<text x="199.0" y="130.0" font-size="11" fill="#5F5E5A">阈值 55</text>
+<rect x="346.0" y="54.0" width="149.0" height="80" rx="8" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="0.5"></rect>
+<rect x="346.0" y="54.0" width="149.0" height="3" rx="1.5" fill="#3B6D11"></rect>
+<text x="360.0" y="82.0" font-size="11.5" fill="#5F5E5A">8821CU RSSI</text>
+<text x="360.0" y="110.0" font-size="22" font-weight="600" fill="#3B6D11">-58</text>
+<text x="400.3" y="110.0" font-size="11.5" fill="#5F5E5A">dBm</text>
+<rect x="507.0" y="54.0" width="149.0" height="80" rx="8" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="0.5"></rect>
+<rect x="507.0" y="54.0" width="149.0" height="3" rx="1.5" fill="#3B6D11"></rect>
+<text x="521.0" y="82.0" font-size="11.5" fill="#5F5E5A">守护进程</text>
+<text x="521.0" y="110.0" font-size="22" font-weight="600" fill="#3B6D11">3/3</text>
+<text x="521.0" y="130.0" font-size="11" fill="#5F5E5A">全部在线</text>
+<path class="mt-spark" d="M24.0 190.0L150.4 175.6L276.8 182.8L403.2 161.2L529.6 168.4L656.0 154.0" fill="none" stroke="#B4B2A9" stroke-width="1.5" stroke-linecap="round"></path>
+<circle cx="656.0" cy="154.0" r="2.5" fill="#185FA5"></circle>
+<text x="24" y="198" font-size="10.5" fill="#5F5E5A">趋势：11.9 → 12.4</text>
+</svg>
