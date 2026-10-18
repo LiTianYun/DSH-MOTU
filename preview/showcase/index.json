@@ -56,20 +56,20 @@
   {
     "id": "isometric-solid",
     "renderer": "isometric",
-    "title": "等距剖面 · 中空星球展示柜",
-    "size": "680×430"
+    "title": "等距剖面 · 三层部署",
+    "size": "680×320"
   },
   {
     "id": "isometric-parts",
     "renderer": "isometric",
     "title": "零件配方 · 分层部署",
-    "size": "680×430"
+    "size": "680×320"
   },
   {
     "id": "isometric-voxel",
     "renderer": "voxel",
-    "title": "体素剖面 · 方块化的空间关系",
-    "size": "680×430"
+    "title": "体素剖面 · 薄壳与核心",
+    "size": "680×320"
   },
   {
     "id": "svg-comparison",

@@ -1,7 +1,6 @@
 <svg viewBox="0 0 680 326" width="680" role="img" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif" style="" height="326">
 <title>连板前自测</title>
 <desc>用例结果：6 项 · 2 通过 / 1 失败 / 1 警告 / 1 跳过 / 1 进行中</desc>
-<rect width="680" height="326" fill="#FFFFFF"></rect>
 <text x="24" y="38" font-size="14" font-weight="600" fill="#2C2C2A">连板前自测</text>
 <text x="24.0" y="68.0" font-size="11" fill="#5F5E5A">状态</text>
 <text x="106.0" y="68.0" font-size="11" fill="#5F5E5A">用例</text>

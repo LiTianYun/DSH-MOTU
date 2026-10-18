@@ -218,25 +218,64 @@ const examples = [
   {
     id: 'isometric-solid',
     renderer: 'isometric',
-    title: '等距剖面 · 中空星球展示柜',
+    title: '等距剖面 · 三层部署',
     language: 'isometric',
     source: `{
-  "kind": "solid",
-  "title": "碎空星 · 等距剖面",
-  "desc": "展示柜里的中空行星：碎裂岩壳、黑洞、悬空城与白洞站方向，切开前四分之一看内部。",
-  "case": 2.3,
-  "cut": 0.72,
-  "objects": [
-    { "type": "shell", "r": 1.34, "thickness": 0.17, "color": "amber", "segments": 30, "rings": 16, "label": "碎裂岩壳" },
-    { "type": "ball", "r": 0.44, "color": "ink", "segments": 18, "rings": 9, "label": "黑洞" },
-    { "type": "ring", "at": [0, 0, 0.12], "r": 0.88, "count": 7, "size": [0.24, 0.24, 0.18], "color": "purple", "label": "悬空城" },
-    { "type": "box", "at": [-2.0, -1.4, 0.8], "size": [0.34, 0.34, 0.12], "color": "blue", "label": "白洞站方向" }
+  "title": "三层部署剖面",
+  "desc": "把一次部署画成可切开的三层：自下而上是网关、服务与数据，颜色各自代表一层。",
+  "case": [
+    6.8,
+    6.8,
+    3.6
   ],
-  "callouts": [
-    { "at": [0.95, 0.95, 0.55], "text": "碎裂岩壳" },
-    { "at": [0, 0, 0], "text": "黑洞" },
-    { "at": [0.62, -0.62, 0.12], "text": "悬空城" },
-    { "at": [-2.0, -1.4, 0.8], "text": "白洞站方向", "side": "left" }
+  "cut": 2.2,
+  "height": 320,
+  "objects": [
+    {
+      "type": "box",
+      "at": [
+        0,
+        0,
+        -1.2
+      ],
+      "size": [
+        5.8,
+        5.4,
+        0.5
+      ],
+      "color": "blue",
+      "label": "网关层"
+    },
+    {
+      "type": "box",
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        4.6,
+        4.2,
+        0.5
+      ],
+      "color": "amber",
+      "label": "服务层"
+    },
+    {
+      "type": "box",
+      "at": [
+        0,
+        0,
+        1.2
+      ],
+      "size": [
+        3.4,
+        3,
+        0.5
+      ],
+      "color": "purple",
+      "label": "数据层"
+    }
   ]
 }`,
   },
@@ -250,8 +289,9 @@ const examples = [
   "desc": "底座、三层服务、机架与节点阵列，都由零件配方一次写成，不用一个个摆板子。",
   "case": [6.4, 6.4, 4.6],
   "cut": 2.6,
+  "height": 320,
   "objects": [
-    { "type": "part", "part": "base", "at": [0, 0, -2.0], "size": [5.6, 5.6], "color": "ink", "label": "底座" },
+    { "type": "part", "part": "base", "at": [0, 0, -2.0], "size": [5.6, 5.6], "color": "teal", "label": "底座" },
     { "type": "part", "part": "stack", "at": [-1.45, -1.45, -1.2], "layers": 3, "size": [2.2, 2.2], "gap": 0.72, "colors": ["amber", "green", "blue"], "label": "三层服务" },
     { "type": "part", "part": "rack", "at": [1.5, -1.5, -0.5], "size": [1.4, 1.4], "height": 2.6, "slots": 6, "color": "ink", "label": "机架" },
     { "type": "part", "part": "grid", "at": [-1.5, 1.5, -1.67], "count": [3, 2], "size": [0.44, 0.44, 0.44], "spacing": [0.8, 0.8], "color": "purple", "label": "节点阵列" },
@@ -266,24 +306,51 @@ const examples = [
   {
     id: 'isometric-voxel',
     renderer: 'voxel',
-    title: '体素剖面 · 方块化的空间关系',
+    title: '体素剖面 · 薄壳与核心',
     language: 'voxel',
     source: `{
-  "grid": 18,
+  "grid": 13,
   "cut": true,
-  "title": "碎空星 · 体素剖面",
-  "desc": "把中空行星拆成方块：球壳、随机塌陷缺口、中心黑洞与内侧悬空城。",
-  "palette": { "#": "amber", "o": "purple", "@": "ink" },
+  "height": 320,
+  "title": "体素剖面 · 薄壳与核心",
+  "desc": "蓝色只有薄薄一层壳，里面是琥珀色的结构层与绿色核心；切开一角就看得到。",
+  "palette": {
+    "#": "blue",
+    "o": "amber",
+    "@": "green"
+  },
   "shapes": [
-    { "shape": "shell", "r": 7.4, "thickness": 1.7, "fill": "#" },
-    { "shape": "collapse", "count": 14, "radius": [1.6, 3.6], "seed": 11 },
-    { "shape": "cluster", "count": 22, "r": 5.4, "fill": "o", "seed": 3 },
-    { "shape": "ball", "r": 1.7, "fill": "@" }
+    {
+      "shape": "ball",
+      "r": 6,
+      "fill": "#"
+    },
+    {
+      "shape": "ball",
+      "r": 5.1,
+      "fill": "o"
+    },
+    {
+      "shape": "cluster",
+      "count": 8,
+      "r": 2.6,
+      "fill": "@",
+      "seed": 7
+    }
   ],
   "legend": [
-    { "color": "amber", "text": "碎裂岩壳" },
-    { "color": "purple", "text": "悬空城" },
-    { "color": "ink", "text": "黑洞" }
+    {
+      "color": "blue",
+      "text": "薄壳"
+    },
+    {
+      "color": "amber",
+      "text": "结构层"
+    },
+    {
+      "color": "green",
+      "text": "核心"
+    }
   ]
 }`,
   },

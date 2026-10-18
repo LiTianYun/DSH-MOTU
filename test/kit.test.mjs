@@ -80,9 +80,29 @@ it('画布骨架：带 title/desc、样式块、且产物是合法 XML', (t) => 
   })
   assert.match(svg, /<title>标题 &lt;&amp;&gt;<\/title>/)
   assert.match(svg, /<desc>说明<\/desc>/)
-  assert.match(svg, /\.c0\{fill:#fff;stroke:#000\}/)
+  // 类名带内容哈希前缀：内联 SVG 的 <style> 是文档级的，裸 .c0 会让同一页里
+  // 后画的那张覆盖先画的 —— 实测两张异色等距图会渲染成同一个颜色。
+  const rule = svg.match(/\.(f[0-9a-z]+-c0)\{fill:#fff;stroke:#000\}/)
+  assert.ok(rule !== null, '样式规则要带唯一前缀')
+  const prefix = rule[1].replace('-c0', '')
+  assert.match(svg, new RegExp(`class="${prefix}-c0"`), '正文里的类名要和样式规则一致')
   assert.match(svg, /font-family="-apple-system, &apos;Segoe UI&apos;, sans-serif"/, '字体栈必须转成属性安全形式')
   assert.equal(xmlProblem(dom, svg), '', '骨架产物必须是合法 XML')
+})
+
+it('同页两张图的样式类名互不覆盖（各带自己的前缀）', (t) => {
+  const { kit } = loadClient(t)
+  const draw = (rules) => kit.svgDocument({
+    width: 200, height: 100, title: 'x', desc: 'y',
+    body: kit.svgPath([[0, 0], [10, 0], [10, 10]], 'c0'),
+    classes: [['c0', rules]],
+  })
+  const red = draw('fill:#A32D2D')
+  const blue = draw('fill:#185FA5')
+  const prefixOf = (svg) => svg.match(/\.(f[0-9a-z]+)-c0\{/)?.[1]
+  assert.notEqual(prefixOf(red), prefixOf(blue), '不同配色的两张图必须拿到不同前缀')
+  // 同样的输入仍然逐字节一致（前缀来自内容哈希，不是计数器）
+  assert.equal(draw('fill:#A32D2D'), red, '相同输入必须产出相同字节')
 })
 
 it('画布骨架：body 超过限额时拒绝', (t) => {

@@ -22,19 +22,61 @@ JSON：{ "objects": [{ "type": "shell", "r": 1.3, "thickness": 0.16, "color": "a
 
 ```isometric
 {
-  "title": "分层部署 · 零件配方",
-  "desc": "底座、三层服务、机架与节点阵列，都由零件配方一次写成。",
-  "case": [6.4, 6.4, 4.6],
-  "cut": 2.6,
-  "objects": [
-    { "type": "part", "part": "base", "at": [0, 0, -2.0], "size": [5.6, 5.6], "color": "ink", "label": "底座" },
-    { "type": "part", "part": "stack", "at": [-1.45, -1.45, -1.2], "layers": 3, "size": [2.2, 2.2], "gap": 0.72, "colors": ["amber", "green", "blue"], "label": "三层服务" },
-    { "type": "part", "part": "rack", "at": [1.5, -1.5, -0.5], "size": [1.4, 1.4], "height": 2.6, "slots": 6, "color": "ink", "label": "机架" },
-    { "type": "part", "part": "grid", "at": [-1.5, 1.5, -1.67], "count": [3, 2], "size": [0.44, 0.44, 0.44], "spacing": [0.8, 0.8], "color": "purple", "label": "节点阵列" }
+  "title": "三层部署剖面",
+  "desc": "把一次部署画成可切开的三层：自下而上是网关、服务与数据，颜色各自代表一层。",
+  "case": [
+    6.8,
+    6.8,
+    3.6
   ],
-  "callouts": [
-    { "at": [-1.45, -1.45, 0.24], "text": "三层服务" },
-    { "at": [1.5, -1.5, 0.6], "text": "机架" }
+  "cut": 2.2,
+  "height": 320,
+  "objects": [
+    {
+      "type": "box",
+      "at": [
+        0,
+        0,
+        -1.2
+      ],
+      "size": [
+        5.8,
+        5.4,
+        0.5
+      ],
+      "color": "blue",
+      "label": "网关层"
+    },
+    {
+      "type": "box",
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        4.6,
+        4.2,
+        0.5
+      ],
+      "color": "amber",
+      "label": "服务层"
+    },
+    {
+      "type": "box",
+      "at": [
+        0,
+        0,
+        1.2
+      ],
+      "size": [
+        3.4,
+        3,
+        0.5
+      ],
+      "color": "purple",
+      "label": "数据层"
+    }
   ]
 }
 ```

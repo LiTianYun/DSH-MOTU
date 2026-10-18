@@ -18,20 +18,48 @@ JSON：{ "grid": 17, "palette": { "#": "amber", "o": "purple" }, "shapes": [{ "s
 
 ```voxel
 {
-  "grid": 15,
-  "title": "体素剖面 · 中空壳体与核心",
-  "desc": "外壳是方块墙、中心一列琥珀色核心，切掉靠近观察者的一角看到内部。",
+  "grid": 13,
   "cut": true,
-  "palette": { "#": "blue", "o": "amber", "@": "ink" },
+  "height": 320,
+  "title": "体素剖面 · 薄壳与核心",
+  "desc": "蓝色只有薄薄一层壳，里面是琥珀色的结构层与绿色核心；切开一角就看得到。",
+  "palette": {
+    "#": "blue",
+    "o": "amber",
+    "@": "green"
+  },
   "shapes": [
-    { "shape": "shell", "r": 6.4, "thickness": 1.5, "fill": "#" },
-    { "shape": "cluster", "count": 12, "r": 4.2, "fill": "o", "seed": 5 },
-    { "shape": "ball", "r": 1.6, "fill": "@" }
+    {
+      "shape": "ball",
+      "r": 6,
+      "fill": "#"
+    },
+    {
+      "shape": "ball",
+      "r": 5.1,
+      "fill": "o"
+    },
+    {
+      "shape": "cluster",
+      "count": 8,
+      "r": 2.6,
+      "fill": "@",
+      "seed": 7
+    }
   ],
   "legend": [
-    { "color": "blue", "text": "壳体" },
-    { "color": "amber", "text": "结构单元" },
-    { "color": "ink", "text": "核心" }
+    {
+      "color": "blue",
+      "text": "薄壳"
+    },
+    {
+      "color": "amber",
+      "text": "结构层"
+    },
+    {
+      "color": "green",
+      "text": "核心"
+    }
   ]
 }
 ```

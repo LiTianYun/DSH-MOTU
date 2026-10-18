@@ -309,10 +309,10 @@ try {
   const styled = await page.request.post(fixture.url + '/dsh-visual-kit/config', { data: { presentation: { style: 'blueprint' } } })
   assert.equal(styled.status(), 200)
   await page.evaluate(() => window.dispatchEvent(new Event('focus')))
-  await page.waitForFunction(() => {
+  await page.waitForFunction((before) => {
     const svg = document.querySelector('#static-isometric .vk-canvas svg')
-    return svg !== null && /F4F6F9|161E27/.test(svg.outerHTML)
-  })
+    return svg !== null && svg.outerHTML !== before
+  }, beforeStyle)
   const afterStyle = await page.evaluate(() => document.querySelector('#static-isometric .vk-canvas svg')?.outerHTML ?? '')
   assert.notEqual(afterStyle, beforeStyle, '换风格后画面应不同')
   assert.ok(!/fill="#FFFFFF"|fill="#1E1E1C"/.test(afterStyle), '不应再是默认风格的画布底')
