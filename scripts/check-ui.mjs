@@ -318,6 +318,49 @@ try {
   assert.ok(!/fill="#FFFFFF"|fill="#1E1E1C"/.test(afterStyle), '不应再是默认风格的画布底')
   checks.push('视觉风格：换风格后引擎图按新令牌重绘')
 
+// 卡片外观契约：卡片 / 标题条 / 画布三层底色都必须透明，图也不能自绘整幅底色。
+// 否则会叠成「灰框里浮一块白方块」—— 圆角接不上，深浅主题各错一次。这类问题不会报错，
+// 只能靠眼睛发现，所以在这里用计算样式钉住。
+const chrome = await page.evaluate(() => {
+  const figure = document.querySelector('.vk-figure')
+  const svg = figure?.querySelector('.vk-canvas svg')
+  const bg = (node) => (node === null || node === undefined ? null : getComputedStyle(node).backgroundColor)
+  const viewWidth = Number((svg?.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/)[2])
+  const opaqueCover = svg === null || svg === undefined
+    ? null
+    : [...svg.querySelectorAll('rect')].some((rect) =>
+        !rect.hasAttribute('x') && !rect.hasAttribute('y') && Number(rect.getAttribute('width')) === viewWidth)
+  return {
+    figure: bg(figure),
+    bar: bg(figure?.querySelector('.vk-bar')),
+    canvas: bg(figure?.querySelector('.vk-canvas')),
+    button: bg(figure?.querySelector('.vk-btn')),
+    opaqueCover,
+  }
+})
+assert.equal(chrome.figure, 'rgba(0, 0, 0, 0)', '卡片底应当透明')
+assert.equal(chrome.bar, 'rgba(0, 0, 0, 0)', '标题条不该有自己的底色')
+assert.equal(chrome.canvas, 'rgba(0, 0, 0, 0)', '画布不该铺自己的面')
+assert.equal(chrome.button, 'rgba(0, 0, 0, 0)', '工具按钮平时不该有底色（hover 才出）')
+assert.equal(chrome.opaqueCover, false, '图不该自绘整幅底色')
+checks.push('卡片外观：三层底色全透明，图直接落在聊天背景上')
+
+// 灯箱里必须反过来：底是近黑，图透明就会让深色字落在黑上。纸面这一层由灯箱提供。
+// 用稳定的 data-vk-action，不靠按钮文字（'放大' 同时匹配'画布内放大'）
+await page.locator('.vk-figure').first().locator('[data-vk-action="expand"]').click()
+await page.waitForTimeout(400)
+const lightbox = await page.evaluate(() => {
+  const svg = document.querySelector('.vk-lightbox-stage > svg')
+  return svg === null ? 'no-lightbox' : getComputedStyle(svg).backgroundColor
+})
+assert.notEqual(lightbox, 'no-lightbox', '双击应当打开灯箱')
+assert.notEqual(lightbox, 'rgba(0, 0, 0, 0)', '灯箱里的图必须有纸面，否则深色字落在近黑底上')
+await page.keyboard.press('Escape')
+  await page.waitForTimeout(200)
+  if (await page.locator('.vk-lightbox').count() > 0) await page.keyboard.press('Escape')
+await page.waitForTimeout(200)
+checks.push('灯箱：图在近黑底上有纸面')
+
   const config = await page.request.post(fixture.url + '/dsh-visual-kit/config', { data: { renderers: { echarts: { interactive: false } } } })
   assert.equal(config.status(), 200)
   await page.evaluate(() => window.dispatchEvent(new Event('focus')))
