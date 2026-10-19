@@ -110,3 +110,56 @@ it('服务缺失或版本不支持时给出可读的失败，而不是崩在 und
   const noFork = loadClient(t, { using: async () => {} })
   await assert.rejects(() => noFork.deliverRepair('修插件', true), /不支持开新会话/)
 })
+
+/** 造一条 assistant 消息事件。 */
+function assistantEvent(text) {
+  return { event: { type: 'assistant/message', data: { message: { content: [{ type: 'text', text }] } } } }
+}
+
+it('修复结论：按约定读出修正后的源码，栅栏本身不留进源码', (t) => {
+  const kit = loadClient(t)
+  const result = kit.readRepairResult([
+    assistantEvent('看了一下，是节点文字里的括号没加引号。'),
+    assistantEvent('已改好。\n\n【修正后的源码】\n```mermaid\nflowchart LR\n    A["含（括号）的文字"] --> B\n```\n'),
+  ])
+  assert.equal(result.kind, 'source')
+  assert.match(result.source, /flowchart LR/)
+  assert.match(result.source, /含（括号）的文字/)
+  assert.doesNotMatch(result.source, /```/, '栅栏不该留在源码里')
+})
+
+it('修复结论：声明无需改源码时不返回源码', (t) => {
+  const kit = loadClient(t)
+  const result = kit.readRepairResult([assistantEvent('这是插件的 bug，我改了适配器。\n\n【无需改源码】')])
+  assert.equal(result.kind, 'plugin')
+  assert.equal(result.source, '')
+})
+
+it('修复结论：两个标记都在时，以最后出现的那个为准', (t) => {
+  const kit = loadClient(t)
+  const sourceLast = kit.readRepairResult([assistantEvent('【无需改源码】\n……想了想还是改源码：\n【修正后的源码】\n```matrix\n{"cases":[{"name":"a","status":"pass"}]}\n```')])
+  assert.equal(sourceLast.kind, 'source', '收尾那个才是结论')
+  const pluginLast = kit.readRepairResult([assistantEvent('【修正后的源码】\n```matrix\n{}\n```\n再看过之后，其实是插件的问题。\n【无需改源码】')])
+  assert.equal(pluginLast.kind, 'plugin')
+})
+
+it('修复结论：读不到就返回 null —— 宁可什么都不做，也不猜', (t) => {
+  const kit = loadClient(t)
+  const cases = [
+    ['没有标记', [assistantEvent('我觉得大概是括号的问题，你再看看？')]],
+    ['有标记但没有栅栏', [assistantEvent('【修正后的源码】\n就是上面那样。')]],
+    ['一条 assistant 消息都没有', [{ event: { type: 'tool/result', data: {} } }]],
+    ['空数组', []],
+    ['不是数组', null],
+  ]
+  for (const [label, entries] of cases) assert.equal(kit.readRepairResult(entries), null, label + ' 应当返回 null')
+})
+
+it('修复结论：只看 assistant 消息，工具结果不参与', (t) => {
+  const kit = loadClient(t)
+  const result = kit.readRepairResult([
+    assistantEvent('【修正后的源码】\n```metrics\n{"items":[{"label":"a","value":"1"}]}\n```'),
+    { event: { type: 'tool/result', data: { content: [{ type: 'text', text: '【无需改源码】' }] } } },
+  ])
+  assert.equal(result.kind, 'source', '工具结果里的字样不该被当成结论')
+})
