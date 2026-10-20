@@ -15,6 +15,7 @@
 | 复杂统计图 | Vega-Lite | ```vega-lite / ```vegalite / ```vega | [vega-lite.md](references/vega-lite.md) |
 | 需要交互的空间图、要反复改角度的剖面 | 等距展示 | ```isometric / ```isometric-interactive | [isometric.md](references/isometric.md) |
 | 体素模型、方块化体量、方块地形 | 体素模型 | ```voxel / ```voxel-interactive | [voxel.md](references/voxel.md) |
+| 任务交付报告、更新档案 | 任务报告 | ```report | [report.md](references/report.md) |
 | 一排读数、健康度、阈值状态 | 指标卡 | ```metrics | [metrics.md](references/metrics.md) |
 | 一组成败结果、自测清单 | 用例矩阵 | ```matrix | [matrix.md](references/matrix.md) |
 | 语义对照、时间线、路线图、概念架构、一次性插图 | SVG 图示（手写） | ```svg | [svg.md](references/svg.md) |
@@ -22,7 +23,7 @@
 ## 成本纪律
 
 - 图由浏览器渲染，**渲染本身不花 token**；花 token 的是你写进对话的源码，而它会留在对话里、之后每轮都被重读。
-- 同一份内容**语法越声明式越省**。一张典型图的源码代价（估算）：Mermaid 图表 ≈ 40，nomnoml ≈ 54，Graphviz（dot） ≈ 68，ECharts ≈ 86，指标卡 ≈ 136，Vega-Lite ≈ 146，用例矩阵 ≈ 148，体素模型 ≈ 183，等距展示 ≈ 212，SVG 图示（手写） ≈ 3514。优先选够用的最小语法。
+- 同一份内容**语法越声明式越省**。一张典型图的源码代价（估算）：Mermaid 图表 ≈ 40，nomnoml ≈ 54，Graphviz（dot） ≈ 68，ECharts ≈ 86，指标卡 ≈ 136，Vega-Lite ≈ 146，用例矩阵 ≈ 148，体素模型 ≈ 183，等距展示 ≈ 212，任务报告 ≈ 271，SVG 图示（手写） ≈ 3514。优先选够用的最小语法。
 - **不要重复画同一张图**。
 - 大段 HTML/长文档**写成文件并给出路径**，不要贴进对话（省 92–99% 的上下文）。
 
