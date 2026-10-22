@@ -198,6 +198,26 @@ it('「应用并重画」把状态从 failed 放回可渲染状态', (t) => {
   assert.notEqual(host.dataset.vkState, 'failed', '应用后不能继续停在 failed')
 })
 
+it('查看报告在应用内打开 iframe，不要求先下载', (t) => {
+  const kit = loadClient(t)
+  const doc = kit.dom.window.document
+  const ok = kit.openReportViewer({
+    html: '<!doctype html><html><body><h1>报告正文</h1></body></html>',
+    title: '测试报告',
+  })
+  assert.equal(ok, true)
+  const viewer = doc.querySelector('.vk-report-viewer')
+  assert.ok(viewer, '应当挂出报告查看层')
+  const frame = viewer.querySelector('iframe')
+  assert.equal(frame.title, '测试报告')
+  assert.match(frame.getAttribute('srcdoc') ?? '', /报告正文/, '完整 HTML 应当直接进入 iframe')
+
+  const close = [...viewer.querySelectorAll('button')].find((node) => node.textContent === '关闭')
+  assert.ok(close)
+  close.click()
+  assert.equal(doc.querySelector('.vk-report-viewer'), null, '关闭后查看层应被移除')
+})
+
 it('报告修复结果会移除错误卡并把源码放回待渲染状态', (t) => {
   const kit = loadClient(t)
   const doc = kit.dom.window.document

@@ -97,11 +97,12 @@ it('同一份 spec 得到同一份字节（页面里没有时间戳）', async (
   assert.equal(once, twice)
 })
 
-it('摘要卡是合法 SVG，且提示下载得到完整网页', async (t) => {
+it('摘要卡是合法 SVG，且提示查看 / 下载完整网页', async (t) => {
   const { dom, client } = loadClient(t)
   const drawn = await client.internals.ADAPTERS.report.render(JSON.stringify(SAMPLE), env())
   const parsed = new dom.window.DOMParser().parseFromString(drawn.markup, 'image/svg+xml')
   assert.equal(parsed.querySelector('parsererror'), null, '摘要卡必须是合法 XML')
+  assert.match(drawn.markup, /查看/)
   assert.match(drawn.markup, /下载/)
   assert.equal([...drawn.markup.matchAll(/\s(fill|stroke)=""/g)].length, 0, '不能有空色')
 })

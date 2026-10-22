@@ -1,6 +1,6 @@
 # 任务报告
 
-一轮任务结束后附报告：结论、改动、验证与风险，下载得到可分享的独立网页，并自动归档到项目
+一轮任务结束后附报告：结论、改动、验证与风险；点「查看」在应用内看完整网页，或下载独立 HTML；自动归档到项目
 
 - 栅栏：```report
 - 引擎：内置于插件（无第三方引擎，投影在本地计算）
@@ -8,7 +8,7 @@
 
 ## 语法
 
-JSON：{ "title": "…", "round": "第 N 轮 · 日期", "status": "done|partial|blocked|failed", "verdict": "一两句说清交付了什么", "badges": [{ "tone": "done|partial|blocked|failed|info|neutral", "text": "…" }], "facts": ["要点"], "meta": { "基线": "…" }, "notice": { "tone": "warn|ok|info", "text": "…" }, "sections": [{ "title": "改了什么", "table": { "head": ["文件", "改动"], "rows": [["lib/client.js", "…"]] } }, { "title": "验证与风险", "items": ["…"], "details": { "summary": "未测范围", "items": ["…"] } }], "sources": [{ "label": "改动", "text": "lib/client.js" }] }；下载得到自包含网页
+JSON：{ "title": "…", "round": "第 N 轮 · 日期", "status": "done|partial|blocked|failed", "verdict": "一两句说清交付了什么", "badges": [{ "tone": "done|partial|blocked|failed|info|neutral", "text": "…" }], "facts": ["要点"], "meta": { "基线": "…" }, "notice": { "tone": "warn|ok|info", "text": "…" }, "sections": [{ "title": "改了什么", "table": { "head": ["文件", "改动"], "rows": [["lib/client.js", "…"]] } }, { "title": "验证与风险", "items": ["…"], "details": { "summary": "未测范围", "items": ["…"] } }], "sources": [{ "label": "改动", "text": "lib/client.js" }] }；查看 / 下载得到自包含网页
 
 ## 易错点
 
