@@ -1,9 +1,8 @@
 /**
- * 反馈修复的投递目标。
+ * 反馈修复：走宿主后台子代理，不新建可见会话。
  *
- * 用户点的是「上报」，不是「在这个会话里起一个任务」——所以默认要开一个新会话去修，
- * 本会话的历史与上下文都不受影响。这里用一个假的 sessions 服务把"去了哪"钉住，
- * 不需要真的起 agent。
+ * 用户点的是「上报」，不是「在这个会话里起一个任务」——所以修复在后台跑，结论直接
+ * 回卡片；这里用一个假的 sessions 服务钉住"绝不分叉"，不需要真的起 agent。
  */
 
 import assert from 'node:assert/strict'
@@ -46,70 +45,93 @@ function loadClient(t, sessions) {
   return kit
 }
 
-it('新会话模式：先 fork，再只往新会话投递，本会话一个字都不进', async (t) => {
+it('后台修复：POST /repair 带上会话与提示词，返回子代理文本', async (t) => {
+  const kit = loadClient(t)
+  const calls = []
+  kit.dom.window.fetch = async (url, options) => {
+    calls.push({ url: String(url), body: JSON.parse(String(options?.body ?? '{}')) })
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, value: { text: '【修正后的源码】\n```mermaid\nflowchart LR\n    A --> B\n```' } }),
+    }
+  }
+  const text = await kit.requestRepair('请修这段')
+  assert.match(text, /修正后的源码/)
+  assert.equal(calls.length, 1)
+  assert.match(calls[0].url, /\/dsh-visual-kit\/repair$/)
+  assert.equal(calls[0].body.sessionId, 'session-main')
+  assert.equal(calls[0].body.prompt, '请修这段')
+})
+
+it('后台修复失败时抛出宿主给的原因，不假装成功', async (t) => {
+  const kit = loadClient(t)
+  kit.dom.window.fetch = async () => ({
+    ok: false,
+    status: 501,
+    json: async () => ({ ok: false, error: { message: '宿主未提供 subagents 服务' } }),
+  })
+  await assert.rejects(() => kit.requestRepair('x'), /宿主未提供 subagents 服务/)
+})
+
+it('反馈按钮走后台修复，不再 fork 新会话', async (t) => {
   const sessions = fakeSessions({ childId: 'session-fork-42' })
   const kit = loadClient(t, sessions)
-
-  const result = await kit.deliverRepair('修插件', true)
-
-  assert.equal(result.target, '新会话')
-  assert.equal(result.id, 'session-fork-42')
-  assert.equal(sessions.calls.forked.length, 1, '应当 fork 一次')
-  assert.equal(sessions.calls.forked[0].sessionId, 'session-main', 'fork 的源是本会话')
-  assert.equal(sessions.calls.forked[0].allowMigration, false, '必须是复制，不能迁移源会话')
-  assert.deepEqual(sessions.calls.used, ['session-fork-42'], '只使用新会话')
-  assert.equal(sessions.calls.prompted.length, 1)
-  assert.equal(sessions.calls.prompted[0].target, 'session-fork-42')
-  assert.equal(sessions.calls.prompted[0].delivery, 'queue')
-  assert.equal(
-    sessions.calls.prompted.some((call) => call.target === 'session-main'),
-    false,
-    '本会话绝不能被投递',
-  )
+  const requests = []
+  kit.dom.window.fetch = async (url, options) => {
+    if (String(url).includes('/repair')) {
+      requests.push(JSON.parse(String(options?.body ?? '{}')))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, value: { text: '【修正后的源码】\n```mermaid\nflowchart LR\n    A --> B\n```' } }),
+      }
+    }
+    return { ok: true, status: 200, json: async () => ({ ok: true, value: {} }) }
+  }
+  kit.setCatalogue({
+    renderers: [{ id: 'mermaid', label: 'Mermaid 图表', languages: ['mermaid'], enabled: true, sample: 'flowchart LR\n    A --> B' }],
+    behavior: { selfRepair: true, repairInNewSession: true },
+  })
+  const doc = kit.dom.window.document
+  const host = doc.createElement('div')
+  host.dataset.vkLanguage = 'mermaid'
+  doc.body.appendChild(host)
+  kit.showError(host, '图挂了', 'flowchart LR\n    A --> B', { renderer: 'mermaid', tier: 'language' })
+  const card = host.nextElementSibling
+  const feedback = [...card.querySelectorAll('button')].find((node) => node.textContent === '反馈并修复')
+  assert.ok(feedback, '应当有反馈并修复按钮')
+  feedback.click()
+  await new Promise((resolve) => setTimeout(resolve, 40))
+  assert.equal(requests.length, 1, '应当请求后台修复')
+  assert.equal(sessions.calls.forked.length, 0, '绝不能 fork 新会话')
+  assert.equal(sessions.calls.prompted.length, 0, '也不能往任何会话投递')
+  assert.ok(card.querySelector('.vk-repair'), '应当原地给出修复建议')
 })
 
-it('本会话模式：只投递本会话，不 fork', async (t) => {
-  const sessions = fakeSessions()
-  const kit = loadClient(t, sessions)
-
-  const result = await kit.deliverRepair('修插件', false)
-
-  assert.equal(result.target, '本会话')
-  assert.equal(sessions.calls.forked.length, 0, '这个模式不该 fork')
-  assert.deepEqual(sessions.calls.used, ['session-main'])
-})
-
-it('新会话模式失败时不回退到本会话（那正是它要避免的事）', async (t) => {
-  const sessions = fakeSessions({ forkFails: true })
-  const kit = loadClient(t, sessions)
-
-  await assert.rejects(() => kit.deliverRepair('修插件', true), /fork 不可用/)
-  assert.deepEqual(sessions.calls.used, [], '失败后不该往任何会话投递')
-  assert.equal(sessions.calls.prompted.length, 0, '失败后不该有投递')
-})
-
-it('投递被拒时抛出真实原因，而不是假装成功', async (t) => {
-  const sessions = fakeSessions({ promptResult: { ok: false, error: { message: '队列已满' } } })
-  const kit = loadClient(t, sessions)
-
-  await assert.rejects(() => kit.deliverRepair('修插件', true), /队列已满/)
-})
-
-it('还没拿到会话 id 时明确报错，不去猜一个', async (t) => {
-  const sessions = fakeSessions()
-  const kit = loadClient(t, sessions)
-  kit.setCurrentSessionId('')
-
-  await assert.rejects(() => kit.deliverRepair('修插件', true), /还没拿到本会话 id/)
-  assert.equal(sessions.calls.forked.length, 0)
-})
-
-it('服务缺失或版本不支持时给出可读的失败，而不是崩在 undefined 上', async (t) => {
-  const noService = loadClient(t)
-  await assert.rejects(() => noService.deliverRepair('修插件', true), /sessions 服务不可用/)
-
-  const noFork = loadClient(t, { using: async () => {} })
-  await assert.rejects(() => noFork.deliverRepair('修插件', true), /不支持开新会话/)
+it('后台修复没有结论时给「复制修复提示词」兜底', async (t) => {
+  const kit = loadClient(t)
+  kit.dom.window.fetch = async (url) => {
+    if (String(url).includes('/repair')) {
+      return { ok: true, status: 200, json: async () => ({ ok: true, value: { text: '我看了看，没什么问题' } }) }
+    }
+    return { ok: true, status: 200, json: async () => ({ ok: true, value: {} }) }
+  }
+  kit.setCatalogue({
+    renderers: [{ id: 'mermaid', label: 'Mermaid 图表', languages: ['mermaid'], enabled: true, sample: 'flowchart LR\n    A --> B' }],
+    behavior: { selfRepair: true, repairInNewSession: true },
+  })
+  const doc = kit.dom.window.document
+  const host = doc.createElement('div')
+  host.dataset.vkLanguage = 'mermaid'
+  doc.body.appendChild(host)
+  kit.showError(host, '图挂了', 'flowchart LR\n    A --> B', { renderer: 'mermaid', tier: 'language' })
+  const card = host.nextElementSibling
+  const feedback = [...card.querySelectorAll('button')].find((node) => node.textContent === '反馈并修复')
+  feedback.click()
+  await new Promise((resolve) => setTimeout(resolve, 40))
+  assert.match(card.textContent, /没有返回可用结果/)
+  assert.ok(card.querySelector('.vk-repair-copy'), '应当提供复制修复提示词')
 })
 
 /** 造一条 assistant 消息事件。 */
@@ -216,6 +238,52 @@ it('查看报告在应用内打开 iframe，不要求先下载', (t) => {
   assert.ok(close)
   close.click()
   assert.equal(doc.querySelector('.vk-report-viewer'), null, '关闭后查看层应被移除')
+})
+
+it('右侧栏「报告」标签页：注册类型与正文/标题，打开时带上报告参数', (t) => {
+  const kit = loadClient(t)
+  const registered = []
+  const slots = []
+  const opened = []
+  const layoutCalls = []
+  kit.setClientCtx({
+    get: (name) => {
+      if (name === 'sidebarRight') return { openTab: (kind, options) => opened.push({ kind, options }) }
+      if (name === 'layout') return { openRightbar: (track, fullscreen) => layoutCalls.push({ track, fullscreen }) }
+      return undefined
+    },
+  })
+  const handle = kit.registerReportTab({
+    inject: (deps, fn) => fn({
+      sidebarRightTabs: { register: (definition) => { registered.push(definition); return () => {} } },
+      slots: {
+        inject: (name, inner) => { slots.push(name); return inner() },
+        register: (registration) => { slots.push(registration); return () => {} },
+      },
+    }),
+  })
+  assert.ok(handle, '注册应当返回可释放的句柄')
+  assert.equal(registered.length, 1)
+  assert.equal(registered[0].kind, 'visual-kit-report')
+  assert.ok(slots.some((item) => item?.name === 'sidebar.right.pane.tab' && item.key === 'dsh-visual-kit-report'))
+  assert.ok(slots.some((item) => item?.name === 'sidebar.right.pane.tab.title' && item.key === 'dsh-visual-kit-report'))
+
+  const ok = kit.openReportSidebarTab({ reportId: 'r1', url: '/dsh-visual-kit/reports/r1', title: '报告 A' })
+  assert.equal(ok, true)
+  assert.equal(opened.length, 1)
+  assert.equal(opened[0].kind, 'visual-kit-report')
+  assert.equal(opened[0].options.params.reportId, 'r1')
+  assert.equal(opened[0].options.params.url, '/dsh-visual-kit/reports/r1')
+  assert.equal(opened[0].options.params.title, '报告 A')
+  assert.equal(opened[0].options.revealIfOpened, true)
+  assert.deepEqual(layoutCalls, [{ track: false, fullscreen: false }])
+})
+
+it('老宿主没有右侧栏服务时「查看」降级，不抛错', (t) => {
+  const kit = loadClient(t)
+  kit.setClientCtx({ get: () => undefined })
+  assert.equal(kit.openReportSidebarTab({ reportId: 'r1', url: '/x' }), false)
+  assert.equal(kit.registerReportTab({ get: () => undefined }), null)
 })
 
 it('报告卡片「查看」会切到报告面板并带上待打开 id', (t) => {

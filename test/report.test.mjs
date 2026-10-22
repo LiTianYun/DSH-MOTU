@@ -107,6 +107,17 @@ it('摘要卡是合法 SVG，且提示查看 / 下载完整网页', async (t) =>
   assert.equal([...drawn.markup.matchAll(/\s(fill|stroke)=""/g)].length, 0, '不能有空色')
 })
 
+it('没有 flow 的旧报告规格照常渲染，不出现流程图结构（向后兼容）', async (t) => {
+  const { client } = loadClient(t)
+  const parsed = client.internals.reportSpecOf(JSON.stringify(SAMPLE))
+  assert.equal(parsed.sections.every((section) => section.flow === null), true)
+  const html = client.internals.reportHtml(parsed)
+  assert.doesNotMatch(html, /class="flow"/)
+  const drawn = await client.internals.ADAPTERS.report.render(JSON.stringify(SAMPLE), env())
+  assert.doesNotMatch(drawn.markup, /含流程图/)
+  assert.match(drawn.markup, /这是摘要卡/)
+})
+
 it('sections[].flow 生成内联 SVG 流程图，文字被转义', async (t) => {
   const { client } = loadClient(t)
   const flow = {

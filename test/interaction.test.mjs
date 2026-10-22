@@ -157,6 +157,27 @@ it('反馈分别报告真实复制和上报结果，不误报复制成功', asyn
   assert.equal(payload.href, `${window.location.origin}/`, '反馈不持久化宿主认证查询串或会话 hash')
 })
 
+it('报告卡片工具栏：查看 / 复制链接 / 复制源码 / 下载，没有浏览器；其他图仍是放大', (t) => {
+  const { api } = load(t)
+  const reportSpec = {
+    id: 'report', label: '任务报告', languages: ['report'], enabled: true, settings: {}, sample: '{"title":"x","verdict":"y"}',
+  }
+  const figure = api.buildFigure({ source: '{"title":"x","verdict":"y","status":"done"}', spec: reportSpec, tier: 'content' })
+  const labels = [...figure.querySelectorAll('.vk-tools button')].map((node) => node.textContent)
+  assert.ok(labels.includes('查看'), '报告卡片应当有「查看」')
+  assert.ok(labels.includes('复制链接'), '报告卡片应当有「复制链接」')
+  assert.ok(labels.includes('复制源码'), '报告卡片的复制按钮应改名为「复制源码」')
+  assert.ok(labels.includes('下载'))
+  assert.ok(!labels.includes('浏览器'), '浏览器入口已移除')
+
+  const mermaid = { id: 'mermaid', label: 'Mermaid', languages: ['mermaid'], enabled: true, settings: {}, sample: '' }
+  const other = api.buildFigure({ source: '', spec: mermaid, tier: 'language' })
+  const otherLabels = [...other.querySelectorAll('.vk-tools button')].map((node) => node.textContent)
+  assert.ok(otherLabels.includes('放大'), '其他渲染器仍然是「放大」')
+  assert.ok(!otherLabels.includes('查看'))
+  assert.ok(!otherLabels.includes('复制链接'))
+})
+
 it('适应画布使用实际内边距，缩放后仍留出完整边距', (t) => {
   const { api, client, cat } = load(t)
   cat.presentation = { canvasPadding: 40, canvasMaxHeight: 360 }

@@ -34,12 +34,12 @@ describe('交互模式配置与能力声明', () => {
       effect(setup) { effects.push(setup()) },
     }
     const returned = new apply(ctx, {})
-    assert.equal(routes.size, 6)
+    assert.equal(routes.size, 7)
     effects.splice(0).forEach(dispose => dispose())
     assert.equal(routes.size, 0)
     const second = new apply(ctx, {})
     returned()
-    assert.equal(routes.size, 6, '旧实例重复销毁不能删除新实例的路由')
+    assert.equal(routes.size, 7, '旧实例重复销毁不能删除新实例的路由')
     second()
     effects.splice(0).forEach(dispose => dispose())
     assert.equal(routes.size, 0)
@@ -703,6 +703,33 @@ describe('asset 备份机制', () => {
   })
 })
 
+describe('后台修复路由', () => {
+  it('宿主没有 subagents 服务时返回 501，而不是崩', async () => {
+    const harness = mount({})
+    try {
+      const response = await call(harness.routes, 'POST', '/dsh-visual-kit/repair', {
+        body: JSON.stringify({ sessionId: 'session-1', prompt: '修一下' }),
+      })
+      assert.equal(response.status, 501)
+      assert.match(JSON.parse(response.body.toString()).error.message, /subagents|agents/)
+    } finally {
+      harness.dispose()
+    }
+  })
+
+  it('缺少 sessionId / prompt 时返回 400', async () => {
+    const harness = mount({})
+    try {
+      const response = await call(harness.routes, 'POST', '/dsh-visual-kit/repair', {
+        body: JSON.stringify({ sessionId: '', prompt: '' }),
+      })
+      assert.equal(response.status, 400)
+    } finally {
+      harness.dispose()
+    }
+  })
+})
+
 describe('报告归档路由', () => {
   it('POST → 列表 → 页面 → 删除 的闭环，且页面带 CSP', async () => {
     const home = mkdtempSync(join(tmpdir(), 'vk-report-route-'))
@@ -759,7 +786,8 @@ describe('报告归档路由', () => {
     process.env.HOME = home
     process.env.USERPROFILE = home
     const routes = new Map()
-    const commands = []
+    const activations = []
+    let disposed = 0
     const ctx = {
       webServer: {
         register(route) {
@@ -768,29 +796,23 @@ describe('报告归档路由', () => {
         },
       },
       get(name) {
-        if (name === 'agents') return { get: (id) => (id === 'session-1' ? { id } : undefined) }
-        if (name === 'workingDirectory') return { ensure: async () => workspace }
-        if (name === 'workspaceRegistry') return { list: () => [{ id: 'ws-1', title: '测试工作区', path: workspace }] }
-        if (name === 'shell') {
+        if (name === 'agents') return { get: (id) => (id === 'session-1' ? { id, session: { id } } : undefined) }
+        if (name === 'workingDirectory') return { ensure: async () => workspace, get: () => workspace }
+        if (name === 'workspaceRegistry') {
+          return { list: () => [{ id: 'ws-1', title: '测试工作区', path: workspace }], archiveSession: async () => {} }
+        }
+        if (name === 'subagents') {
           return {
-            resolve: (request) => ({ ...request, workdir: request.workdir ?? '', timeoutMs: 8000, onExpiry: 'none', stdoutMaxBytes: 4096 }),
-            execute: async (spec) => {
-              commands.push(spec.command)
+            list: () => ['fork'],
+            startActivation: async (spec) => {
+              activations.push(spec)
               return {
-                status: 'completed',
-                exitCode: 0,
-                signal: null,
-                done: Promise.resolve(),
-                readOutput: () => ({ delta: '', lossy: false }),
-                observed: {
-                  stdout: { readFrom: () => ({ text: '', nextOffset: 0, lossy: false }) },
-                  stderr: { readFrom: () => ({ text: '', nextOffset: 0, lossy: false }) },
-                },
-                kill: () => false,
-                result: async () => ({
-                  exitCode: 0, signal: null, timedOut: false, aborted: false, timeoutMs: 8000,
-                  stdout: { text: '', truncated: false }, stderr: { text: '', truncated: false },
+                childId: 'child-1',
+                result: Promise.resolve({
+                  output: [{ type: 'text', text: '【修正后的源码】\n```mermaid\nflowchart LR\n    A --> B\n```' }],
+                  stopReason: 'completed',
                 }),
+                dispose: async () => { disposed += 1 },
               }
             },
           }
@@ -819,10 +841,17 @@ describe('报告归档路由', () => {
       assert.equal(listed.value.reports.length, 1)
       assert.equal(listed.value.reports[0].workspace.title, '测试工作区')
 
-      const opened = await call(routes, 'POST', `/dsh-visual-kit/reports/${value.id}/open`)
-      assert.equal(opened.status, 200, '打开报告应当交给系统浏览器')
-      assert.equal(commands.length, 1)
-      assert.match(commands[0], /report\.html/, '打开的是报告文件本身')
+      const repaired = await call(routes, 'POST', '/dsh-visual-kit/repair', {
+        body: JSON.stringify({ sessionId: 'session-1', prompt: '请修这段' }),
+      })
+      assert.equal(repaired.status, 200, '后台修复应当返回子代理结论')
+      assert.match(JSON.parse(repaired.body.toString()).value.text, /修正后的源码/)
+      assert.equal(activations.length, 1)
+      assert.equal(activations[0].provider, 'fork')
+      assert.equal(activations[0].delivery, 'caller', '结果只回调用方，不写进父会话')
+      assert.equal(activations[0].label, 'visual-kit-repair')
+      assert.equal(activations[0].request.parent.id, 'session-1')
+      assert.equal(disposed, 1, '跑完要释放 activation')
     } finally {
       dispose()
       if (previousHome === undefined) delete process.env.HOME
