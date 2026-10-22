@@ -759,6 +759,7 @@ describe('报告归档路由', () => {
     process.env.HOME = home
     process.env.USERPROFILE = home
     const routes = new Map()
+    const commands = []
     const ctx = {
       webServer: {
         register(route) {
@@ -770,6 +771,30 @@ describe('报告归档路由', () => {
         if (name === 'agents') return { get: (id) => (id === 'session-1' ? { id } : undefined) }
         if (name === 'workingDirectory') return { ensure: async () => workspace }
         if (name === 'workspaceRegistry') return { list: () => [{ id: 'ws-1', title: '测试工作区', path: workspace }] }
+        if (name === 'shell') {
+          return {
+            resolve: (request) => ({ ...request, workdir: request.workdir ?? '', timeoutMs: 8000, onExpiry: 'none', stdoutMaxBytes: 4096 }),
+            execute: async (spec) => {
+              commands.push(spec.command)
+              return {
+                status: 'completed',
+                exitCode: 0,
+                signal: null,
+                done: Promise.resolve(),
+                readOutput: () => ({ delta: '', lossy: false }),
+                observed: {
+                  stdout: { readFrom: () => ({ text: '', nextOffset: 0, lossy: false }) },
+                  stderr: { readFrom: () => ({ text: '', nextOffset: 0, lossy: false }) },
+                },
+                kill: () => false,
+                result: async () => ({
+                  exitCode: 0, signal: null, timedOut: false, aborted: false, timeoutMs: 8000,
+                  stdout: { text: '', truncated: false }, stderr: { text: '', truncated: false },
+                }),
+              }
+            },
+          }
+        }
         return undefined
       },
       logger: { warn: () => {}, error: () => {} },
@@ -793,6 +818,11 @@ describe('报告归档路由', () => {
       const listed = JSON.parse((await call(routes, 'GET', '/dsh-visual-kit/reports')).body.toString())
       assert.equal(listed.value.reports.length, 1)
       assert.equal(listed.value.reports[0].workspace.title, '测试工作区')
+
+      const opened = await call(routes, 'POST', `/dsh-visual-kit/reports/${value.id}/open`)
+      assert.equal(opened.status, 200, '打开报告应当交给系统浏览器')
+      assert.equal(commands.length, 1)
+      assert.match(commands[0], /report\.html/, '打开的是报告文件本身')
     } finally {
       dispose()
       if (previousHome === undefined) delete process.env.HOME

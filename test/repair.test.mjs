@@ -218,6 +218,15 @@ it('查看报告在应用内打开 iframe，不要求先下载', (t) => {
   assert.equal(doc.querySelector('.vk-report-viewer'), null, '关闭后查看层应被移除')
 })
 
+it('报告卡片「查看」会切到报告面板并带上待打开 id', (t) => {
+  const kit = loadClient(t)
+  const selected = []
+  kit.setClientCtx({ get: (name) => (name === 'layout' ? { selectPanel: (id) => selected.push(id) } : undefined) })
+  const ok = kit.openReportsPanel('20261022-000000-deadbeef')
+  assert.equal(ok, true)
+  assert.deepEqual(selected, ['dsh-visual-kit-reports'], '应当切到报告面板')
+})
+
 it('已归档的报告优先用宿主路由查看，而不是本地 srcdoc', (t) => {
   const kit = loadClient(t)
   const doc = kit.dom.window.document
