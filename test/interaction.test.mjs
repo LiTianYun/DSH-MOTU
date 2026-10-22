@@ -279,6 +279,7 @@ it('Mermaid 语法错误提示点名旗形节点的括号配对', async (t) => {
   assert.ok(hint.textContent.includes('id>["文字"]'), '要点名把方括号塞进旗形这一写法')
   assert.ok(hint.textContent.includes('id["文字"]'), '要给出正确写法')
   assert.ok(hint.textContent.includes('A["文字（含括号）"]'), '节点文字加引号的规则不能丢')
+  assert.ok(hint.textContent.includes('边标签'), '边标签里的裸双引号也要点名，它与节点文字里的引号不是一回事')
 })
 
 it('fixHint 只在语法类错误时给语法提示，其他错误回退到该引擎的一行说明', async (t) => {
@@ -287,6 +288,16 @@ it('fixHint 只在语法类错误时给语法提示，其他错误回退到该�
   const mermaid = { id: 'mermaid', syntaxHint: '首行必须是图表类型关键字' }
   assert.match(fixHint(mermaid, 'Parse error on line 14:'), /旗形/)
   assert.match(fixHint(mermaid, 'Lexical error on line 2'), /旗形/)
+  assert.match(
+    fixHint(mermaid, 'Parse error on line 8:'),
+    /边标签/,
+    '边标签里的裸双引号是最常见的 Parse error 之一，必须点名',
+  )
+  assert.match(
+    fixHint(mermaid, 'Parse error on line 8:'),
+    /「」/,
+    '要给出可用的替代写法，而不是只说“别这么写”',
+  )
   assert.equal(fixHint(mermaid, 'engine not loaded'), '首行必须是图表类型关键字')
   assert.match(fixHint({ id: 'graphviz', syntaxHint: 'dot 说明' }, 'syntax error in line 3'), /引号/)
 })

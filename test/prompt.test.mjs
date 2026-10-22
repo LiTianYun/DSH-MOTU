@@ -42,6 +42,19 @@ it('超出预算时点名去技能参考页，而不是静默丢弃', () => {
   assert.match(text, /选型：\S/)
 })
 
+it('任务收尾报告开关控制固定提示行，且 report 关闭时不提要求', () => {
+  const on = promptText({}, enabledRenderers({}))
+  assert.match(on, /收尾附 ```report/)
+  assert.match(on, /纯问答不附/)
+
+  const config = { agent: { taskReport: false } }
+  const off = promptText(config, enabledRenderers(config))
+  assert.ok(!off.includes('收尾附 ```report'), '关闭后不再要求写报告')
+
+  const noReport = enabledRenderers({ renderers: { report: { enabled: false } } })
+  assert.ok(!promptText({}, noReport).includes('收尾附 ```report'), 'report 渲染器关闭后也不能要求写报告')
+})
+
 it('渲染器专属补句由 manifest 声明，且尊重它绑定的开关', () => {
   const full = promptText({}, enabledRenderers({}))
   const note = renderers.find((spec) => spec.id === 'echarts').promptNote
