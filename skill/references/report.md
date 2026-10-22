@@ -1,6 +1,6 @@
 # 任务报告
 
-一轮任务结束后附报告：结论、改动、验证与风险；点「查看」在应用内看完整网页，或下载独立 HTML；自动归档到项目
+一轮任务结束后附报告：结论、改动、验证与风险；sections[].flow 画一张内联 SVG 流程图；点「查看」跳到报告面板，或用「浏览器」打开独立网页；自动归档到项目
 
 - 栅栏：```report
 - 引擎：内置于插件（无第三方引擎，投影在本地计算）
@@ -8,7 +8,7 @@
 
 ## 语法
 
-JSON：{ "title": "…", "round": "第 N 轮 · 日期", "status": "done|partial|blocked|failed", "verdict": "一两句说清交付了什么", "badges": [{ "tone": "done|partial|blocked|failed|info|neutral", "text": "…" }], "facts": ["要点"], "meta": { "基线": "…" }, "notice": { "tone": "warn|ok|info", "text": "…" }, "sections": [{ "title": "改了什么", "table": { "head": ["文件", "改动"], "rows": [["lib/client.js", "…"]] } }, { "title": "验证与风险", "items": ["…"], "details": { "summary": "未测范围", "items": ["…"] } }], "sources": [{ "label": "改动", "text": "lib/client.js" }] }；查看 / 下载得到自包含网页
+JSON：{ "title": "…", "round": "第 N 轮 · 日期", "status": "done|partial|blocked|failed", "verdict": "一两句说清交付了什么", "badges": [{ "tone": "done|partial|blocked|failed|info|neutral", "text": "…" }], "facts": ["要点"], "meta": { "基线": "…" }, "notice": { "tone": "warn|ok|info", "text": "…" }, "sections": [{ "title": "改动流程", "flow": { "direction": "LR", "nodes": [{ "id": "a", "label": "输入", "sub": "可选副标题" }, { "id": "b", "label": "处理" }], "edges": [{ "from": "a", "to": "b", "label": "可选" }] } }, { "title": "改了什么", "table": { "head": ["文件", "改动"], "rows": [["lib/client.js", "…"]] } }, { "title": "验证与风险", "items": ["…"], "details": { "summary": "未测范围", "items": ["…"] } }], "sources": [{ "label": "改动", "text": "lib/client.js" }] }；查看 / 下载得到自包含网页
 
 ## 易错点
 
@@ -18,6 +18,8 @@ JSON：{ "title": "…", "round": "第 N 轮 · 日期", "status": "done|partial
 - verdict 要回答「交付了什么」，不要写成「我做了以下工作」的流水账。
 - 改动表只列真实改过的文件；不要把计划、建议或未做的改动写进去。
 - 状态与徽章要一致：`partial` 时不要给「已完成」徽章。
+- `sections[].flow` 画内联 SVG 流程图：2–6 个节点，`nodes[].id` 唯一，`edges[].from/to` 必须指向已声明的 id；不要写坐标、颜色或 SVG 源码。
+- 流程图是"结构 / 流程"的补充，不是替代正文；改动流程、数据流、调用链最适合画，纯清单不必硬塞。
 
 ## 完整示例
 
@@ -42,6 +44,23 @@ JSON：{ "title": "…", "round": "第 N 轮 · 日期", "status": "done|partial
   },
   "notice": { "tone": "warn", "text": "未测：真实长对话里 20 张以上图同时换主题的耗时。" },
   "sections": [
+    {
+      "title": "改动流程",
+      "flow": {
+        "direction": "LR",
+        "nodes": [
+          { "id": "fence", "label": "报告栅栏", "sub": "JSON spec" },
+          { "id": "spec", "label": "校验与默认值", "sub": "reportSpecOf" },
+          { "id": "svg", "label": "内联流程图", "sub": "reportFlowSvg" },
+          { "id": "page", "label": "自包含网页", "sub": "查看 / 浏览器" }
+        ],
+        "edges": [
+          { "from": "fence", "to": "spec", "label": "解析" },
+          { "from": "spec", "to": "svg", "label": "flow" },
+          { "from": "svg", "to": "page", "label": "归档" }
+        ]
+      }
+    },
     { "title": "用户能感知到的变化", "items": ["两张不同颜色的等距图不再互相污染", "换风格后颜色跟随当前风格"] },
     {
       "title": "改了什么",

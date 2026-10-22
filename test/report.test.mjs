@@ -107,6 +107,45 @@ it('摘要卡是合法 SVG，且提示查看 / 下载完整网页', async (t) =>
   assert.equal([...drawn.markup.matchAll(/\s(fill|stroke)=""/g)].length, 0, '不能有空色')
 })
 
+it('sections[].flow 生成内联 SVG 流程图，文字被转义', async (t) => {
+  const { client } = loadClient(t)
+  const flow = {
+    direction: 'LR',
+    nodes: [
+      { id: 'a', label: '输入 <script>', sub: '需求' },
+      { id: 'b', label: '处理' },
+      { id: 'c', label: '输出' },
+    ],
+    edges: [
+      { from: 'a', to: 'b', label: '解析' },
+      { from: 'b', to: 'c' },
+    ],
+  }
+  const value = { ...SAMPLE, sections: [{ title: '改动流程', flow }] }
+  const parsed = client.internals.reportSpecOf(JSON.stringify(value))
+  assert.equal(parsed.sections[0].flow.nodes.length, 3)
+  const html = client.internals.reportHtml(parsed)
+  assert.match(html, /<svg/, '报告页应当含内联 SVG')
+  assert.match(html, /改动流程/)
+  assert.match(html, /输入 &lt;script&gt;/, '流程图文字必须转义')
+  assert.doesNotMatch(html, /输入 <script>/, '不能把标记带进页面')
+})
+
+it('流程图规格写错就报错', async (t) => {
+  const { client } = loadClient(t)
+  const base = (flow) => ({ ...SAMPLE, sections: [{ title: '流程', flow }] })
+  const cases = [
+    [base({ direction: 'XX', nodes: [{ id: 'a', label: 'a' }, { id: 'b', label: 'b' }] }), /direction 只能是/],
+    [base({ nodes: [{ id: 'a', label: 'a' }] }), /至少 2 个节点/],
+    [base({ nodes: Array.from({ length: 7 }, (unused, index) => ({ id: `n${index}`, label: `n${index}` })) }), /最多 6 个/],
+    [base({ nodes: [{ id: 'a', label: 'a' }, { id: 'a', label: 'b' }] }), /id 不能重复/],
+    [base({ nodes: [{ id: 'a', label: 'a' }, { id: 'b', label: 'b' }], edges: [{ from: 'a', to: 'zzz' }] }), /to 指向不存在的节点/],
+  ]
+  for (const [value, pattern] of cases) {
+    assert.throws(() => client.internals.reportSpecOf(JSON.stringify(value)), pattern)
+  }
+})
+
 it('规格写错就报错，不生成"看着像"的空报告', async (t) => {
   const { client } = loadClient(t)
   const cases = [

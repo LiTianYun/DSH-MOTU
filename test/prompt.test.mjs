@@ -44,19 +44,23 @@ it('超出预算时点名去技能参考页，而不是静默丢弃', () => {
 
 it('任务收尾报告开关控制固定提示行，且 report 关闭时不提要求', () => {
   const on = promptText({}, enabledRenderers({}))
-  assert.match(on, /收尾附 ```report/)
+  assert.match(on, /收尾另附 ```report/)
   assert.match(on, /纯问答不附/)
   // 这条行曾经写成「附 report：结论、改动、验证、风险」，模型照着写成行文，
   // 渲染器按 JSON 解析必然失败。提示行必须把「正文是 JSON」说清楚。
   assert.match(on, /JSON/, '报告提示行必须说明正文是 JSON')
   assert.match(on, /行文/, '报告提示行必须点破最常见的错法：写成了行文')
+  // 报告曾经挤掉了画图主指令：它必须是"照常画图 + 收尾另附"，且排在整段最后。
+  assert.match(on, /照常画图/, '报告不能挤掉画图主指令')
+  assert.match(on, /不替代图/, '报告不能替代图')
+  assert.ok(on.indexOf('主动画一张图') < on.indexOf('收尾另附'), '画图主指令必须排在报告行之前')
 
   const config = { agent: { taskReport: false } }
   const off = promptText(config, enabledRenderers(config))
-  assert.ok(!off.includes('收尾附 ```report'), '关闭后不再要求写报告')
+  assert.ok(!off.includes('收尾另附 ```report'), '关闭后不再要求写报告')
 
   const noReport = enabledRenderers({ renderers: { report: { enabled: false } } })
-  assert.ok(!promptText({}, noReport).includes('收尾附 ```report'), 'report 渲染器关闭后也不能要求写报告')
+  assert.ok(!promptText({}, noReport).includes('收尾另附 ```report'), 'report 渲染器关闭后也不能要求写报告')
 })
 
 it('渲染器专属补句由 manifest 声明，且尊重它绑定的开关', () => {
