@@ -300,6 +300,13 @@ it('fixHint 只在语法类错误时给语法提示，其他错误回退到该�
   )
   assert.equal(fixHint(mermaid, 'engine not loaded'), '首行必须是图表类型关键字')
   assert.match(fixHint({ id: 'graphviz', syntaxHint: 'dot 说明' }, 'syntax error in line 3'), /引号/)
+
+  // 报告只收 JSON：模型把报告写成了「结论：…」的行文时，提示必须给出该变成的形状。
+  const reportFailure = '报告 spec不是合法 JSON：Unexpected token \'结\', "结论：DSH 没有现"... is not valid JSON'
+  const reportHint = fixHint({ id: 'report', syntaxHint: '报告语法' }, reportFailure)
+  assert.match(reportHint, /JSON/, '报告失败时必须点名「正文是 JSON」')
+  assert.match(reportHint, /行文/, '必须点破最常见的错法：写成了行文')
+  assert.match(reportHint, /"verdict"/, '要给最小可用字段，而不是只说“写 JSON”')
 })
 
 it('绘图方式点选即保存，兼容旧数值，失败保留原选项并允许重试', async t => {

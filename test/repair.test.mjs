@@ -39,6 +39,7 @@ function loadClient(t, sessions) {
   dom.window.__ModuleLoader__ = { load({ factory }) { client = factory(() => { throw new Error('no react') }) } }
   dom.window.eval(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'))
   const kit = client.internals
+  kit.dom = dom
   kit.setCurrentSessionId('session-main')
   if (sessions !== undefined) kit.setClientCtx({ get: (name) => (name === 'sessions' ? sessions : undefined) })
   t.after(() => dom.window.close())
@@ -162,4 +163,70 @@ it('修复结论：只看 assistant 消息，工具结果不参与', (t) => {
     { event: { type: 'tool/result', data: { content: [{ type: 'text', text: '【无需改源码】' }] } } },
   ])
   assert.equal(result.kind, 'source', '工具结果里的字样不该被当成结论')
+})
+
+it('报告修复请求要求改报告内容，而不是让 agent 去修插件', (t) => {
+  const kit = loadClient(t)
+  const text = kit.reportRepairRequest({
+    renderer: 'report', tier: 'content', message: '报告 spec 不是合法 JSON', source: '结论：把这条改成 JSON',
+  })
+  assert.match(text, /【任务报告修复请求】/)
+  assert.match(text, /合法的 report JSON/)
+  assert.match(text, /【修正后的源码】/)
+  assert.match(text, /```report/)
+  assert.doesNotMatch(text, /直接修插件/, '内容错误不能被路由成插件修复')
+})
+
+it('「应用并重画」把状态从 failed 放回可渲染状态', (t) => {
+  const kit = loadClient(t)
+  const doc = kit.dom.window.document
+  const host = doc.createElement('div')
+  host.dataset.vkLanguage = 'mermaid'
+  host.dataset.vkState = 'failed'
+  doc.body.appendChild(host)
+  const card = doc.createElement('div')
+  doc.body.appendChild(card)
+
+  kit.showRepairSuggestion(card, host, 'mermaid', { id: 'mermaid', tier: 'language' }, {
+    kind: 'source', source: 'flowchart LR\n    A --> B', text: '',
+  })
+  const apply = [...card.querySelectorAll('button')].find((node) => node.textContent === '应用并重画')
+  assert.ok(apply, '修正后的源码必须给出应用按钮')
+  apply.click()
+
+  // 修复前这里会停在 failed，renderBlock 的首行检查直接 return，图永远不出现。
+  assert.notEqual(host.dataset.vkState, 'failed', '应用后不能继续停在 failed')
+})
+
+it('报告修复结果会移除错误卡并把源码放回待渲染状态', (t) => {
+  const kit = loadClient(t)
+  const doc = kit.dom.window.document
+  const host = doc.createElement('div')
+  host.dataset.vkState = 'failed'
+  doc.body.appendChild(host)
+  const card = doc.createElement('div')
+  doc.body.appendChild(card)
+
+  kit.applyReportRepair(card, host, '{"title":"x","verdict":"y","status":"done"}')
+
+  assert.equal(card.isConnected, false, '修复后错误卡应当消失')
+  assert.notEqual(host.dataset.vkState, 'failed', '源码要重新进入渲染流程')
+  assert.equal(host.dataset.vkSource, '{"title":"x","verdict":"y","status":"done"}')
+})
+
+it('报告解析失败的错误卡提供后台修复按钮，而不是通用的「反馈并修复」', (t) => {
+  const kit = loadClient(t)
+  const doc = kit.dom.window.document
+  kit.setCatalogue({
+    renderers: [{ id: 'report', label: '任务报告', languages: ['report'], enabled: true, sample: '{"title":"x","verdict":"y"}' }],
+    behavior: { selfRepair: true, repairInNewSession: true },
+  })
+  const host = doc.createElement('div')
+  host.dataset.vkLanguage = 'report'
+  doc.body.appendChild(host)
+  kit.showError(host, '报告 spec 不是合法 JSON', '结论：这不是 JSON', { renderer: 'report', tier: 'content' })
+  const card = host.nextElementSibling
+  assert.ok(card !== null)
+  assert.match(card.textContent, /后台修复这份报告/)
+  assert.doesNotMatch(card.textContent, /反馈并修复/)
 })

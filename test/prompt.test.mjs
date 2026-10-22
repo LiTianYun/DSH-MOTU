@@ -46,6 +46,10 @@ it('任务收尾报告开关控制固定提示行，且 report 关闭时不提�
   const on = promptText({}, enabledRenderers({}))
   assert.match(on, /收尾附 ```report/)
   assert.match(on, /纯问答不附/)
+  // 这条行曾经写成「附 report：结论、改动、验证、风险」，模型照着写成行文，
+  // 渲染器按 JSON 解析必然失败。提示行必须把「正文是 JSON」说清楚。
+  assert.match(on, /JSON/, '报告提示行必须说明正文是 JSON')
+  assert.match(on, /行文/, '报告提示行必须点破最常见的错法：写成了行文')
 
   const config = { agent: { taskReport: false } }
   const off = promptText(config, enabledRenderers(config))

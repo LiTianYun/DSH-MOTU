@@ -67,3 +67,14 @@ it('技能文档与客户端提示讲的是同一件事（只改一处会被抓�
   const client = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
   assert.match(client, /边标签里有双引号会 Parse error/, 'fixHint 必须写明同一条')
 })
+
+it('报告只收 JSON：生成器、技能页与客户端提示说同一件事', () => {
+  const vendor = readFileSync(new URL('../scripts/vendor.mjs', import.meta.url), 'utf8')
+  assert.match(vendor, /正文必须是一个 JSON 对象/, 'PITFALLS.report 必须写明报告正文是 JSON 对象')
+
+  const doc = readFileSync(new URL('../skill/references/report.md', import.meta.url), 'utf8')
+  assert.match(doc, /正文必须是一个 JSON 对象/, 'skill/references/report.md 必须带上同一条（跑 npm run vendor 生成）')
+
+  const client = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+  assert.match(client, /报告栅栏的正文必须是一个 JSON 对象/, 'fixHint 必须点名报告只收 JSON')
+})

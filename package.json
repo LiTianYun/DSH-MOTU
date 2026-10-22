@@ -1,6 +1,6 @@
 {
   "name": "dsh-visual-kit",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "description": "可视化套件 — render fenced blocks in the DSH web conversation as real diagrams, charts and task reports. Eleven renderers (Mermaid, Graphviz, nomnoml, ECharts, Vega-Lite, hand-written SVG, isometric, voxel, metrics, matrix and report), every one configurable, integrity-checked and served by the plugin itself — no CDN, works offline.",
   "keywords": [
     "deepseek",
