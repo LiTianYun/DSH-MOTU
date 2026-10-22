@@ -53,6 +53,8 @@ it('任务收尾报告开关控制固定提示行，且 report 关闭时不提�
   // 报告曾经挤掉了画图主指令：它必须是"照常画图 + 收尾另附"，且排在整段最后。
   assert.match(on, /照常画图/, '报告不能挤掉画图主指令')
   assert.match(on, /不替代图/, '报告不能替代图')
+  assert.match(on, /字段见技能参考页/, '报告行要指向技能参考页')
+  assert.match(on, /sections\[\]\.flow/, '报告行要点出内联流程图字段')
   assert.ok(on.indexOf('主动画一张图') < on.indexOf('收尾另附'), '画图主指令必须排在报告行之前')
 
   const config = { agent: { taskReport: false } }
