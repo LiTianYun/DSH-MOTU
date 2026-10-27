@@ -633,3 +633,35 @@ describe('MERMAID_HEAD', () => {
     assert.ok(!MERMAID_HEAD.test('// graph TD in a comment\nconst x = 1'))
   })
 })
+describe('mermaid classDef 文字对比度', () => {
+  const { rebalanceClassDefs } = loaded.client.internals
+
+  it('深色主题下浅底未写 color 时补近黑文字', () => {
+    const source = 'flowchart LR\n  A --> B\n  classDef ok fill:#EAF4EC,stroke:#3B6D11\n  class B ok'
+    const out = rebalanceClassDefs(source, '#F7F5EF')
+    assert.match(out, /classDef ok fill:#EAF4EC,stroke:#3B6D11,color:#1F1F1D/)
+    // 其余行原样
+    assert.equal(out.split('\n')[0], 'flowchart LR')
+    assert.equal(out.split('\n')[1], '  A --> B')
+  })
+
+  it('浅色主题下深底补近白文字', () => {
+    const out = rebalanceClassDefs('classDef bad fill:#1F1F1D', '#1F1F1D')
+    assert.match(out, /color:#F7F5EF/)
+  })
+
+  it('作者已写 color 时不动', () => {
+    const source = 'classDef ok fill:#EAF4EC,color:#3B6D11'
+    assert.equal(rebalanceClassDefs(source, '#F7F5EF'), source)
+  })
+
+  it('对比度已达标时不动', () => {
+    const source = 'classDef dark fill:#1F1F1D'
+    assert.equal(rebalanceClassDefs(source, '#F7F5EF'), source)
+  })
+
+  it('style 行同样处理，不可解析的颜色不改', () => {
+    assert.match(rebalanceClassDefs('style A fill:#EAF4EC', '#F7F5EF'), /color:#1F1F1D/)
+    assert.equal(rebalanceClassDefs('style A fill:tomato', '#F7F5EF'), 'style A fill:tomato')
+  })
+})
