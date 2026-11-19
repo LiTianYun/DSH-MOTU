@@ -9,29 +9,25 @@
 | 改动 | 说明 |
 |---|---|
 | 引擎配色 | Mermaid / Graphviz / nomnoml 从出厂灰改为风格语义色（蓝=主线、绿=通过、琥珀=部分），深色主题下同色向白提亮 |
-| 文字对比 | 渲染后按每个文本的实际底色重算对比度，低于 4.5 的自动换成近黑或近白 |
+| 文字对比 | 两处兜底：Graphviz / nomnoml 渲染后按实际底色重算；mermaid 的 classDef 只写了底色时，渲染前补 `color`（低于 4.5 才改） |
 | 图卡片材质 | 底板改为半透明磨砂，复用壁纸引擎的侧栏配方；主题插件可用 `--vk-figure-bg` 完全接管 |
 | 新增 `diff` 渲染器 | `diff` / `patch` 栅栏渲染成彩色差异卡：文件头、双列行号、增绿删红（上游是单色文本） |
 
 ## 效果
 
-深色主题下，流程图与关系图不再是灰底灰线：
+文字不再溶进底色：浅底上的字自动变深，深底上的自动变浅。
 
-![Mermaid 流程图](docs/shots/flow-dark.png)
+![mermaid 文字对比度](docs/shots/mermaid-ink-dark.png)
 
-![Graphviz 架构分层](docs/shots/graph-dark.png)
+指标卡与用例矩阵：
 
-![nomnoml 极简流程](docs/shots/nomnoml-dark.png)
+![指标卡与用例矩阵](docs/shots/cards-dark.png)
 
 新增的代码差异卡：
 
 ![代码差异](docs/shots/diff-dark.png)
 
-浅色主题（无壁纸，卡片为实底）：
-
-![ECharts 柱状图](docs/shots/echarts-light.png)
-
-> 截图取自真实渲染管线（Chromium + 随包引擎 + 插件真实 CSS），不是示意图。
+> 截图取自真实渲染管线（Chromium + 随包引擎 + 插件真实 CSS + 壁纸底），不是示意图。
 
 ## 安装
 
@@ -47,7 +43,7 @@ dsh plugin --profile <name> add link:$PWD
 ## 验证
 
 ```bash
-npm test                 # 265 项单测
+npm test                 # 270 项单测
 npm run check:renderers  # 12 个渲染器各产出一份真实产物并校验为合法 XML
 ```
 
