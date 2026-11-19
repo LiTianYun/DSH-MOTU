@@ -9,7 +9,8 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { EventEmitter } from 'node:events'
-import { copyFileSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { after, before, describe, it } from 'node:test'
@@ -33,12 +34,12 @@ describe('交互模式配置与能力声明', () => {
       effect(setup) { effects.push(setup()) },
     }
     const returned = new apply(ctx, {})
-    assert.equal(routes.size, 5)
+    assert.equal(routes.size, 7)
     effects.splice(0).forEach(dispose => dispose())
     assert.equal(routes.size, 0)
     const second = new apply(ctx, {})
     returned()
-    assert.equal(routes.size, 5, '旧实例重复销毁不能删除新实例的路由')
+    assert.equal(routes.size, 7, '旧实例重复销毁不能删除新实例的路由')
     second()
     effects.splice(0).forEach(dispose => dispose())
     assert.equal(routes.size, 0)
@@ -698,6 +699,202 @@ describe('asset 备份机制', () => {
     for (const [path, info] of Object.entries(record.assets)) {
       const bytes = readFileSync(join(VENDOR, path))
       assert.equal(createHash('sha256').update(bytes).digest('hex'), info.sha256, `${path} 应与记录一致`)
+    }
+  })
+})
+
+describe('后台修复路由', () => {
+  it('宿主没有 subagents 服务时返回 501，而不是崩', async () => {
+    const harness = mount({})
+    try {
+      const response = await call(harness.routes, 'POST', '/dsh-visual-kit/repair', {
+        body: JSON.stringify({ sessionId: 'session-1', prompt: '修一下' }),
+      })
+      assert.equal(response.status, 501)
+      assert.match(JSON.parse(response.body.toString()).error.message, /subagents|agents/)
+    } finally {
+      harness.dispose()
+    }
+  })
+
+  it('缺少 sessionId / prompt 时返回 400', async () => {
+    const harness = mount({})
+    try {
+      const response = await call(harness.routes, 'POST', '/dsh-visual-kit/repair', {
+        body: JSON.stringify({ sessionId: '', prompt: '' }),
+      })
+      assert.equal(response.status, 400)
+    } finally {
+      harness.dispose()
+    }
+  })
+})
+
+describe('报告归档路由', () => {
+  it('POST → 列表 → 页面 → 删除 的闭环，且页面带 CSP', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'vk-report-route-'))
+    const previousHome = process.env.HOME
+    const previousProfile = process.env.USERPROFILE
+    process.env.HOME = home
+    process.env.USERPROFILE = home
+    const harness = mount({})
+    try {
+      const spec = { title: '路由测试', verdict: '完成了存储闭环', status: 'done' }
+      const html = '<!doctype html><html><body>report-body</body></html>'
+      const created = await call(harness.routes, 'POST', '/dsh-visual-kit/reports', {
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sessionId: '', spec, html, style: 'motu' }),
+      })
+      assert.equal(created.status, 200)
+      const value = JSON.parse(created.body.toString()).value
+      assert.match(value.id, /^\d{8}-\d{6}-[0-9a-f]{8}$/)
+      assert.equal(value.root, 'home')
+      assert.ok(existsSync(join(value.path, 'report.html')))
+      assert.ok(existsSync(join(value.path, 'report.json')))
+      assert.ok(existsSync(join(home, '.dsh', 'visual-kit', 'reports', 'index.json')))
+
+      const listed = JSON.parse((await call(harness.routes, 'GET', '/dsh-visual-kit/reports')).body.toString())
+      assert.equal(listed.value.reports.length, 1)
+      assert.equal(listed.value.reports[0].title, '路由测试')
+
+      const page = await call(harness.routes, 'GET', `/dsh-visual-kit/reports/${value.id}`)
+      assert.equal(page.status, 200)
+      assert.match(page.headers['content-type'], /text\/html/)
+      assert.match(page.headers['content-security-policy'], /default-src 'none'/)
+      assert.match(page.headers['content-security-policy'], /frame-ancestors 'self'/, '归档预览需要在应用内同源 iframe 加载')
+      assert.equal(page.body.toString(), html)
+
+      const removed = await call(harness.routes, 'DELETE', `/dsh-visual-kit/reports/${value.id}`)
+      assert.equal(removed.status, 200)
+      const empty = JSON.parse((await call(harness.routes, 'GET', '/dsh-visual-kit/reports')).body.toString())
+      assert.equal(empty.value.reports.length, 0)
+    } finally {
+      harness.dispose()
+      if (previousHome === undefined) delete process.env.HOME
+      else process.env.HOME = previousHome
+      if (previousProfile === undefined) delete process.env.USERPROFILE
+      else process.env.USERPROFILE = previousProfile
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('会话工作区可解析时，报告落到项目 .dsh 目录', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'vk-report-home-'))
+    const workspace = mkdtempSync(join(tmpdir(), 'vk-report-ws-'))
+    const previousHome = process.env.HOME
+    const previousProfile = process.env.USERPROFILE
+    process.env.HOME = home
+    process.env.USERPROFILE = home
+    const routes = new Map()
+    const activations = []
+    let disposed = 0
+    const ctx = {
+      webServer: {
+        register(route) {
+          routes.set(`${route.kind}:${route.path}`, route)
+          return () => routes.delete(`${route.kind}:${route.path}`)
+        },
+      },
+      get(name) {
+        if (name === 'agents') return { get: (id) => (id === 'session-1' ? { id, session: { id } } : undefined) }
+        if (name === 'workingDirectory') return { ensure: async () => workspace, get: () => workspace }
+        if (name === 'workspaceRegistry') {
+          return { list: () => [{ id: 'ws-1', title: '测试工作区', path: workspace }], archiveSession: async () => {} }
+        }
+        if (name === 'subagents') {
+          return {
+            list: () => ['fork'],
+            startActivation: async (spec) => {
+              activations.push(spec)
+              return {
+                childId: 'child-1',
+                result: Promise.resolve({
+                  output: [{ type: 'text', text: '【修正后的源码】\n```mermaid\nflowchart LR\n    A --> B\n```' }],
+                  stopReason: 'completed',
+                }),
+                dispose: async () => { disposed += 1 },
+              }
+            },
+          }
+        }
+        return undefined
+      },
+      logger: { warn: () => {}, error: () => {} },
+    }
+    const dispose = apply(ctx, {})
+    try {
+      const created = await call(routes, 'POST', '/dsh-visual-kit/reports', {
+        body: JSON.stringify({
+          sessionId: 'session-1',
+          spec: { title: '项目内报告', verdict: '落在项目里', status: 'done' },
+          html: '<!doctype html><html><body>project</body></html>',
+          style: 'motu',
+        }),
+      })
+      assert.equal(created.status, 200)
+      const value = JSON.parse(created.body.toString()).value
+      assert.equal(value.root, 'project')
+      assert.ok(value.path.startsWith(join(workspace, '.dsh', 'visual-kit', 'reports')))
+      assert.ok(existsSync(join(value.path, 'report.html')))
+
+      const listed = JSON.parse((await call(routes, 'GET', '/dsh-visual-kit/reports')).body.toString())
+      assert.equal(listed.value.reports.length, 1)
+      assert.equal(listed.value.reports[0].workspace.title, '测试工作区')
+
+      const repaired = await call(routes, 'POST', '/dsh-visual-kit/repair', {
+        body: JSON.stringify({ sessionId: 'session-1', prompt: '请修这段' }),
+      })
+      assert.equal(repaired.status, 200, '后台修复应当返回子代理结论')
+      assert.match(JSON.parse(repaired.body.toString()).value.text, /修正后的源码/)
+      assert.equal(activations.length, 1)
+      assert.equal(activations[0].provider, 'fork')
+      assert.equal(activations[0].delivery, 'caller', '结果只回调用方，不写进父会话')
+      assert.equal(activations[0].label, 'visual-kit-repair')
+      assert.equal(activations[0].request.parent.id, 'session-1')
+      assert.equal(disposed, 1, '跑完要释放 activation')
+    } finally {
+      dispose()
+      if (previousHome === undefined) delete process.env.HOME
+      else process.env.HOME = previousHome
+      if (previousProfile === undefined) delete process.env.USERPROFILE
+      else process.env.USERPROFILE = previousProfile
+      rmSync(home, { recursive: true, force: true })
+      rmSync(workspace, { recursive: true, force: true })
+    }
+  })
+
+  it('拒绝外部资源、缺 doctype 与缺结论的页面', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'vk-report-route-'))
+    const previousHome = process.env.HOME
+    const previousProfile = process.env.USERPROFILE
+    process.env.HOME = home
+    process.env.USERPROFILE = home
+    const harness = mount({})
+    try {
+      const base = { sessionId: '', spec: { title: 'x', verdict: 'y', status: 'done' }, style: 'motu' }
+      const external = await call(harness.routes, 'POST', '/dsh-visual-kit/reports', {
+        body: JSON.stringify({ ...base, html: '<!doctype html><html><head><script src="https://x.test/a.js"></script></head></html>' }),
+      })
+      assert.equal(external.status, 400, '外部脚本必须拒绝')
+      const anchor = await call(harness.routes, 'POST', '/dsh-visual-kit/reports', {
+        body: JSON.stringify({ ...base, html: '<!doctype html><html><body><a href="https://x.test/">x</a></body></html>' }),
+      })
+      assert.equal(anchor.status, 400, '外部链接必须拒绝')
+      const incomplete = await call(harness.routes, 'POST', '/dsh-visual-kit/reports', {
+        body: JSON.stringify({ ...base, html: '<div>no doctype</div>' }),
+      })
+      assert.equal(incomplete.status, 400, '不完整页面必须拒绝')
+      const missing = await call(harness.routes, 'POST', '/dsh-visual-kit/reports', {
+        body: JSON.stringify({ ...base, spec: { title: '', verdict: 'y' }, html: '<!doctype html><html></html>' }),
+      })
+      assert.equal(missing.status, 400, '缺 title 必须拒绝')
+    } finally {
+      harness.dispose()
+      if (previousHome === undefined) delete process.env.HOME
+      else process.env.HOME = previousHome
+      if (previousProfile === undefined) delete process.env.USERPROFILE
+      else process.env.USERPROFILE = previousProfile
+      rmSync(home, { recursive: true, force: true })
     }
   })
 })

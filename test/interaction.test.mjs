@@ -157,6 +157,27 @@ it('反馈分别报告真实复制和上报结果，不误报复制成功', asyn
   assert.equal(payload.href, `${window.location.origin}/`, '反馈不持久化宿主认证查询串或会话 hash')
 })
 
+it('报告卡片工具栏：查看 / 复制链接 / 复制源码 / 下载，没有浏览器；其他图仍是放大', (t) => {
+  const { api } = load(t)
+  const reportSpec = {
+    id: 'report', label: '任务报告', languages: ['report'], enabled: true, settings: {}, sample: '{"title":"x","verdict":"y"}',
+  }
+  const figure = api.buildFigure({ source: '{"title":"x","verdict":"y","status":"done"}', spec: reportSpec, tier: 'content' })
+  const labels = [...figure.querySelectorAll('.vk-tools button')].map((node) => node.textContent)
+  assert.ok(labels.includes('查看'), '报告卡片应当有「查看」')
+  assert.ok(labels.includes('复制链接'), '报告卡片应当有「复制链接」')
+  assert.ok(labels.includes('复制源码'), '报告卡片的复制按钮应改名为「复制源码」')
+  assert.ok(labels.includes('下载'))
+  assert.ok(!labels.includes('浏览器'), '浏览器入口已移除')
+
+  const mermaid = { id: 'mermaid', label: 'Mermaid', languages: ['mermaid'], enabled: true, settings: {}, sample: '' }
+  const other = api.buildFigure({ source: '', spec: mermaid, tier: 'language' })
+  const otherLabels = [...other.querySelectorAll('.vk-tools button')].map((node) => node.textContent)
+  assert.ok(otherLabels.includes('放大'), '其他渲染器仍然是「放大」')
+  assert.ok(!otherLabels.includes('查看'))
+  assert.ok(!otherLabels.includes('复制链接'))
+})
+
 it('适应画布使用实际内边距，缩放后仍留出完整边距', (t) => {
   const { api, client, cat } = load(t)
   cat.presentation = { canvasPadding: 40, canvasMaxHeight: 360 }
@@ -279,6 +300,7 @@ it('Mermaid 语法错误提示点名旗形节点的括号配对', async (t) => {
   assert.ok(hint.textContent.includes('id>["文字"]'), '要点名把方括号塞进旗形这一写法')
   assert.ok(hint.textContent.includes('id["文字"]'), '要给出正确写法')
   assert.ok(hint.textContent.includes('A["文字（含括号）"]'), '节点文字加引号的规则不能丢')
+  assert.ok(hint.textContent.includes('边标签'), '边标签里的裸双引号也要点名，它与节点文字里的引号不是一回事')
 })
 
 it('fixHint 只在语法类错误时给语法提示，其他错误回退到该引擎的一行说明', async (t) => {
@@ -287,8 +309,25 @@ it('fixHint 只在语法类错误时给语法提示，其他错误回退到该�
   const mermaid = { id: 'mermaid', syntaxHint: '首行必须是图表类型关键字' }
   assert.match(fixHint(mermaid, 'Parse error on line 14:'), /旗形/)
   assert.match(fixHint(mermaid, 'Lexical error on line 2'), /旗形/)
+  assert.match(
+    fixHint(mermaid, 'Parse error on line 8:'),
+    /边标签/,
+    '边标签里的裸双引号是最常见的 Parse error 之一，必须点名',
+  )
+  assert.match(
+    fixHint(mermaid, 'Parse error on line 8:'),
+    /「」/,
+    '要给出可用的替代写法，而不是只说“别这么写”',
+  )
   assert.equal(fixHint(mermaid, 'engine not loaded'), '首行必须是图表类型关键字')
   assert.match(fixHint({ id: 'graphviz', syntaxHint: 'dot 说明' }, 'syntax error in line 3'), /引号/)
+
+  // 报告只收 JSON：模型把报告写成了「结论：…」的行文时，提示必须给出该变成的形状。
+  const reportFailure = '报告 spec不是合法 JSON：Unexpected token \'结\', "结论：DSH 没有现"... is not valid JSON'
+  const reportHint = fixHint({ id: 'report', syntaxHint: '报告语法' }, reportFailure)
+  assert.match(reportHint, /JSON/, '报告失败时必须点名「正文是 JSON」')
+  assert.match(reportHint, /行文/, '必须点破最常见的错法：写成了行文')
+  assert.match(reportHint, /"verdict"/, '要给最小可用字段，而不是只说“写 JSON”')
 })
 
 it('绘图方式点选即保存，兼容旧数值，失败保留原选项并允许重试', async t => {
